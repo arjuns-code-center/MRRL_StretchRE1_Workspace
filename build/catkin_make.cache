@@ -1,0 +1,2 @@
+simplemotion
+-DCATKIN_DEVEL_PREFIX=/home/arjun/motion_ws/devel -DCMAKE_INSTALL_PREFIX=/home/arjun/motion_ws/install -G Unix Makefiles

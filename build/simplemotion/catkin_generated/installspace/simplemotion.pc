@@ -1,0 +1,8 @@
+prefix=/home/arjun/motion_ws/install
+
+Name: simplemotion
+Description: Description of simplemotion
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
