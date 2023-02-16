@@ -2,7 +2,7 @@
 Stretch RE1 robot code for motion, image capture, and other functionality. 
 
 # UMass Amherst Mechatronics, Robotics, and Research Lab
-Author: Arjun Viswanathan, CompE 2024 at UMass Amherst
+Author: Arjun Viswanathan, CompE 2024 at UMass Amherst\n
 Date Created: 2/16/23
 Dr. Frank Sup, Gina Georgadarellis
 
