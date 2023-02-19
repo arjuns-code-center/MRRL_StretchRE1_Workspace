@@ -8,14 +8,16 @@ import time
 import stretch_body.robot as sb
 from stretch_body.hello_utils import *
 
-print("STRETCH Keyboard Controls")
+print("========STRETCH Keyboard Controls========")
 print("Use WASD to move the base")
 print("Use Q and E to extend or retract the arm")
 print("Use Z and C to move lift up and down")
-print("Use K and L to turn the wrist")
 print("Use N and M to pan head")
 print("Use I and O to tilt head")
+print("Use K and L to turn the wrist")
 print("Use H and J to move gripper")
+print("Use F and G to control wrist pitch")
+print("Use V and B to control wrist roll")
 print("Use T to stop robot")
 
 class Stretch_Move:
@@ -28,7 +30,7 @@ class Stretch_Move:
         self.arm = self.robot.arm
         self.base = self.robot.base
         self.lift = self.robot.lift
-        self.endofarm = self.robot.end_of_arm # stores wrist_yaw and stretch_gripper
+        self.endofarm = self.robot.end_of_arm # stores wrist_yaw, stretch_gripper, wrist_pitch, and wrist_roll
         self.head = self.robot.head
 
         # Initialize the params for each part
@@ -82,6 +84,14 @@ class Stretch_Move:
     def wrist_rot(self, degrees):
         self.endofarm.move_by('wrist_yaw', deg_to_rad(degrees), self.v, self.a)
         #self.wrist.go_to_pos(currentPos + distance)
+        self.robot.push_command()
+
+    def wrist_pitch(self, degrees):
+        self.endofarm.move_by('wrist_pitch', deg_to_rad(degrees), self.v, self.a)
+        self.robot.push_command()
+
+    def wrist_roll(self, degrees):
+        self.endofarm.move_by('wrist_roll', deg_to_rad(degrees), self.v, self.a)
         self.robot.push_command()
 
     def head_pan(self, degrees):
@@ -179,6 +189,16 @@ class Keys:
             self.sm.wrist_rot(5)
         elif key == 'l' or key == 'L':
             self.sm.wrist_rot(-5)
+
+        if key == 'f' or key == 'F':
+            self.sm.wrist_pitch(5)
+        elif key == 'g' or key == 'G':
+            self.sm.wrist_pitch(-5)
+
+        if key == 'v' or key == 'V':
+            self.sm.wrist_roll(5)
+        elif key == 'b' or key == 'B':
+            self.sm.wrist_roll(-5)
 
         if key == 'n' or key == 'N':
             self.sm.head_pan(10)
