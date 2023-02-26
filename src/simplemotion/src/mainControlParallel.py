@@ -1,24 +1,13 @@
 #!/usr/bin/env python
 # Arjun Viswanathan
-# 2/16/23
-# Main script to move stretch with keyboard input
+# 2/26/23
+# Main script to move stretch with keyboard input but this time uses pygame module to move multiple components at the same time
 
-import sys, tty, termios
 import time
 import stretch_body.robot as sb
 from stretch_body.hello_utils import *
-
-print("========STRETCH Keyboard Controls========")
-print("Use WASD to move the base")
-print("Use Q and E to extend or retract the arm")
-print("Use Z and C to move lift up and down")
-print("Use N and M to pan head")
-print("Use I and O to tilt head")
-print("Use K and L to turn the wrist")
-print("Use H and J to move gripper")
-print("Use F and G to control wrist pitch")
-print("Use V and B to control wrist roll")
-print("Use T to stop robot")
+import pygame
+from pygame.locals import *
 
 class Stretch_Move:
     def __init__(self):
@@ -140,108 +129,115 @@ class Keys:
         self.quit = 0
         self.sm = Stretch_Move()
 
-    def getch(self):
-        # Keyboard file from stretch_core
-        stdin_fd = 0
-        # "Return a list containing the tty attributes for file descriptor
-        # fd, as follows: [iflag, oflag, cflag, lflag, ispeed, ospeed, cc]"
-        # from https://docs.python.org/2/library/termios.html
-        original_tty_attributes = termios.tcgetattr(stdin_fd)
-        new_tty_attributes = termios.tcgetattr(stdin_fd)
-        # Change the lflag (local modes) to turn off canonical mode
-        new_tty_attributes[3] &= ~termios.ICANON
-        # Set VMIN = 0 and VTIME > 0 for a timed read, as explained in:
-        # http://unixwiz.net/techtips/termios-vmin-vtime.html
-        new_tty_attributes[6][termios.VMIN] = b'\x00'
-        new_tty_attributes[6][termios.VTIME] = b'\x01'
+        self.key_state = {'w': False, 'a': False, 's': False, 'd': False,
+                        'q': False, 'e': False, 
+                        'z': False, 'c': False,
+                        'n': False, 'm': False, 
+                        'i': False, 'o': False, 
+                        'k': False, 'l': False, 
+                        'h': False, 'j': False,
+                        'f': False, 'g': False, 
+                        'v': False, 'b': False,
+                        't': False}
+        
+    def setKeyStates(self):
+        keys = pygame.key.get_pressed()
 
-        new_tty_attributes[3] &= ~termios.ECHO
-        try:
-            termios.tcsetattr(stdin_fd, termios.TCSAFLUSH, new_tty_attributes)
-            ch1 = sys.stdin.read(1)
-            if ch1 == '\x1b':
-                # special key pressed
-                ch2 = sys.stdin.read(1)
-                ch3 = sys.stdin.read(1)
-                ch = ch1 + ch2 + ch3
-            else:
-                # not a special key
-                ch = ch1
-        finally:
-            termios.tcsetattr(stdin_fd, termios.TCSAFLUSH, original_tty_attributes)
+        self.key_state['w'] = keys[pygame.K_w]
+        self.key_state['a'] = keys[pygame.K_a]
+        self.key_state['s'] = keys[pygame.K_s]
+        self.key_state['d'] = keys[pygame.K_d]
 
-        return ch
+        self.key_state['q'] = keys[pygame.K_q]
+        self.key_state['e'] = keys[pygame.K_e]
+        self.key_state['z'] = keys[pygame.K_z]
+        self.key_state['c'] = keys[pygame.K_c]
+
+        self.key_state['n'] = keys[pygame.K_n]
+        self.key_state['m'] = keys[pygame.K_m]
+        self.key_state['i'] = keys[pygame.K_i]
+        self.key_state['o'] = keys[pygame.K_o]
+
+        self.key_state['k'] = keys[pygame.K_k]
+        self.key_state['l'] = keys[pygame.K_l]
+        self.key_state['h'] = keys[pygame.K_h]
+        self.key_state['j'] = keys[pygame.K_j]
+
+        self.key_state['f'] = keys[pygame.K_f]
+        self.key_state['g'] = keys[pygame.K_g]
+        self.key_state['v'] = keys[pygame.K_v]
+        self.key_state['b'] = keys[pygame.K_b]
+
+        self.key_state['t'] = keys[pygame.K_t]
     
-    def getkeystroke(self):
-        fd=sys.stdin.fileno()
-        old_settings=termios.tcgetattr(fd)
-
-        try:
-            tty.setraw(sys.stdin.fileno())
-            ch=sys.stdin.read(1)
-        finally:
-            termios.tcsetattr(fd,termios.TCSADRAIN,old_settings)
-
-        return ch
-
     def queueActions(self):
         key = self.getkeystroke()
 
         # Moving forward/backward
-        if key == 'w' or key == 'W':
+        if self.key_state['w']:
             self.sm.move_base(0.1)
-        elif key == 's' or key == 'S':
+        
+        if self.key_state['s']:
             self.sm.move_base(-0.1)
 
         # Turning left/right
-        if key == 'a' or key == 'A':
+        if self.key_state['a']:
             self.sm.rotate_base(-0.2)
-        elif key == 'd' or key == 'D':
+        
+        if self.key_state['d']:
             self.sm.rotate_base(0.2)
 
         # Arm extend/retract
-        if key == 'q' or key == 'Q':
+        if self.key_state['q']:
             self.sm.move_arm_incremental(0.02)
-        elif key == 'e' or key == 'E':
+        
+        if self.key_state['e']:
             self.sm.move_arm_incremental(-0.02)
 
         # Lift up/down
-        if key == 'z' or key == 'Z':
+        if self.key_state['z']:
             self.sm.move_lift_incremental(0.02)
-        elif key == 'c' or key == 'C':
+        
+        if self.key_state['c']:
             self.sm.move_lift_incremental(-0.02)
 
-        if key == 'k' or key == 'K':
+        if self.key_state['k']:
             self.sm.controlEOA('wrist_yaw', 5)
-        elif key == 'l' or key == 'L':
+        
+        if self.key_state['l']:
             self.sm.controlEOA('wrist_yaw', -5)
 
-        if key == 'f' or key == 'F':
+        if self.key_state['f']:
             self.sm.controlEOA('wrist_pitch', 5)
-        elif key == 'g' or key == 'G':
+        
+        if self.key_state['g']:
             self.sm.controlEOA('wrist_pitch', -5)
 
-        if key == 'v' or key == 'V':
+        if self.key_state['v']:
             self.sm.controlEOA('wrist_roll', 5)
-        elif key == 'b' or key == 'B':
+        
+        if self.key_state['b']:
             self.sm.controlEOA('wrist_roll', -5)
 
-        if key == 'n' or key == 'N':
+        if self.key_state['n']:
             self.sm.controlHead('head_pan', 10)
-        elif key == 'm' or key == 'M':
+        
+        if self.key_state['m']:
             self.sm.controlHead('head_pan', -10)
 
-        if key == 'i' or key == 'I':
+        if self.key_state['i']:
             self.sm.controlHead('head_tilt', 30)
-        elif key == 'o' or key == 'O':
+        
+        if self.key_state['o']:
             self.sm.controlHead('head_tilt', -30)
 
-        if key == 'h' or key == 'H':
+        if self.key_state['h']:
             self.sm.move_gripper(90)
-        elif key == 'j' or key == 'J':
+        
+        if self.key_state['j']:
             self.sm.move_gripper(-90)
 
-        if key == 't' or key == 'T':
+        if self.key_state['t']:
             print("Stopping robot")
             self.sm.robot_stop()
             self.quit = 1
@@ -252,9 +248,23 @@ class Keys:
     def isStopped(self):
         return self.quit
 
+print("========STRETCH Keyboard Controls========")
+print("Use WASD to move the base")
+print("Use Q and E to extend or retract the arm")
+print("Use Z and C to move lift up and down")
+print("Use N and M to pan head")
+print("Use I and O to tilt head")
+print("Use K and L to turn the wrist")
+print("Use H and J to move gripper")
+print("Use F and G to control wrist pitch")
+print("Use V and B to control wrist roll")
+print("Use T to stop robot")
+
+pygame.init()
 kb = Keys()
 
 while not kb.isStopped():
+    kb.setKeyStates()
     kb.queueActions()
     kb.execCommand()
     time.sleep(0.1)
