@@ -171,8 +171,6 @@ class Keys:
         self.key_state['t'] = keys[pygame.K_t]
     
     def queueActions(self):
-        key = self.getkeystroke()
-
         # Moving forward/backward
         if self.key_state['w']:
             self.sm.move_base(0.1)
