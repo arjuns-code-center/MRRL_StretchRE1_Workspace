@@ -53,13 +53,19 @@ class Stretch_Move:
     def delay(self, value):
         time.sleep(value)
 
-    def move_base(self, x):
+    def move_base(self, x, wait=False):
         # Use distance
         self.base.translate_by(x_m=x, v_m=self.base_v, a_m=self.base_a)
 
-    def rotate_base(self, theta):
+        if wait:
+            self.base.wait_until_at_setpoint()
+
+    def rotate_base(self, theta, wait=False):
         # Use distance
         self.base.rotate_by(x_r=theta, v_r=self.v, a_r=self.a)
+
+        if wait:
+            self.base.wait_until_at_setpoint()
 
     def move_arm_absolute(self, position, interrupt):
         # Move to position at velocity and acceleration v, a
@@ -97,27 +103,14 @@ class Stretch_Move:
         self.head.move_by(name, deg_to_rad(degrees), self.v, self.a)
 
     def auto_box(self, move = 0.5, rotate = 1.7):
-        #base_v = robot.base.params['motion']['max']['vel_m']
-        #base_a = robot.base.params['motion']['max']['accel_m']
-        #base_w = robot.base.params['rotation']['max']['vel_m']
-        #base_r = robot.base.params['rotation']['max']['accel_m']
-
-        #move_delay = move / base_v
-        #rot_delay = move / base_w
-
         print("Moving robot in a box")
 
         for i in range(4):
-            self.robot.base.translate_by(x_m=move)
-            self.robot.push_command()
-            self.robot.base.wait_until_at_setpoint()
-            #time.sleep(move_delay)
+            self.move_base(x_m=move, wait=True)
+            self.execCommand()
             
-            #for j in range(8):
-            self.robot.base.rotate_by(x_r=rotate)
-            self.robot.push_command()
-            #time.sleep(rot_delay)
-            self.robot.base.wait_until_at_setpoint()
+            self.rotate_base(x_r=rotate, wait=True)
+            self.execCommand()
 
         print("Finished box!")
 
