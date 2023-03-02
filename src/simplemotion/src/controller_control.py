@@ -6,8 +6,8 @@
 import time
 import stretch_body.robot as sb
 from stretch_body.hello_utils import *
-import pygame
-from pygame.locals import *
+import stretch_body.xbox_controller as xc
+
 
 class Stretch_Move:
     def __init__(self):
@@ -123,7 +123,6 @@ class Stretch_Move:
         self.delay(1.0)
 
         servo.stop()
-
 class Keys:
     def __init__(self):
         self.quit = 0
@@ -258,7 +257,6 @@ print("Use F and G to control wrist pitch")
 print("Use V and B to control wrist roll")
 print("Use T to stop robot")
 
-pygame.init()
 kb = Keys()
 
 while not kb.isStopped():
