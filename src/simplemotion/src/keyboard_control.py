@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Arjun Viswanathan
 # 2/16/23
 # Main script to move stretch with keyboard input
