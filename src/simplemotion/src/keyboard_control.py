@@ -43,6 +43,8 @@ class Stretch_Move:
         self.gripper_v = 20.0
         self.gripper_a = 10.0
 
+        self.timeout = 1.0
+
     def execCommand(self):
         self.robot.push_command()
         self.delay(0.05)
@@ -58,14 +60,14 @@ class Stretch_Move:
         self.base.translate_by(x_m=x, v_m=self.base_v, a_m=self.base_a)
 
         if wait:
-            self.base.wait_until_at_setpoint()
+            self.base.wait_until_at_setpoint(self.timeout)
 
     def rotate_base(self, theta, wait=False):
         # Use distance
         self.base.rotate_by(x_r=theta, v_r=self.v, a_r=self.a)
 
         if wait:
-            self.base.wait_until_at_setpoint()
+            self.base.wait_until_at_setpoint(self.timeout)
 
     def move_arm_absolute(self, position, interrupt):
         # Move to position at velocity and acceleration v, a
@@ -73,7 +75,7 @@ class Stretch_Move:
         
         # Only wait until completion if interrupt signal not given
         if not interrupt:
-            self.arm.wait_until_at_setpoint()
+            self.arm.wait_until_at_setpoint(self.timeout)
 
     def move_lift_absolute(self, position, interrupt):
         # Move to position at velocity and acceleration v, a
@@ -81,7 +83,7 @@ class Stretch_Move:
         
         # Only wait until completion if interrupt signal not given
         if not interrupt:
-            self.lift.wait_until_at_setpoint()
+            self.lift.wait_until_at_setpoint(self.timeout)
 
     def move_arm_incremental(self, distance):
         # Move by distance at velocity and acceleration v, a
@@ -102,14 +104,14 @@ class Stretch_Move:
         # possible params for name: head_pan, head_tilt
         self.head.move_by(name, deg_to_rad(degrees), self.v, self.a)
 
-    def auto_box(self, move = 0.5, rotate = 1.7):
+    def auto_box(self, move = 0.5, rotate = 1.65):
         print("Moving robot in a box")
 
         for i in range(4):
-            self.move_base(x_m=move, wait=True)
+            self.move_base(move, True)
             self.execCommand()
             
-            self.rotate_base(x_r=rotate, wait=True)
+            self.rotate_base(rotate, True)
             self.execCommand()
 
         print("Finished box!")
@@ -132,38 +134,6 @@ class Keys:
     def __init__(self):
         self.quit = 0
         self.sm = Stretch_Move()
-
-    def getch(self):
-        # Keyboard file from stretch_core
-        stdin_fd = 0
-        # "Return a list containing the tty attributes for file descriptor
-        # fd, as follows: [iflag, oflag, cflag, lflag, ispeed, ospeed, cc]"
-        # from https://docs.python.org/2/library/termios.html
-        original_tty_attributes = termios.tcgetattr(stdin_fd)
-        new_tty_attributes = termios.tcgetattr(stdin_fd)
-        # Change the lflag (local modes) to turn off canonical mode
-        new_tty_attributes[3] &= ~termios.ICANON
-        # Set VMIN = 0 and VTIME > 0 for a timed read, as explained in:
-        # http://unixwiz.net/techtips/termios-vmin-vtime.html
-        new_tty_attributes[6][termios.VMIN] = b'\x00'
-        new_tty_attributes[6][termios.VTIME] = b'\x01'
-
-        new_tty_attributes[3] &= ~termios.ECHO
-        try:
-            termios.tcsetattr(stdin_fd, termios.TCSAFLUSH, new_tty_attributes)
-            ch1 = sys.stdin.read(1)
-            if ch1 == '\x1b':
-                # special key pressed
-                ch2 = sys.stdin.read(1)
-                ch3 = sys.stdin.read(1)
-                ch = ch1 + ch2 + ch3
-            else:
-                # not a special key
-                ch = ch1
-        finally:
-            termios.tcsetattr(stdin_fd, termios.TCSAFLUSH, original_tty_attributes)
-
-        return ch
     
     def getkeystroke(self):
         fd=sys.stdin.fileno()
@@ -188,9 +158,9 @@ class Keys:
 
         # Turning left/right
         if key == 'a' or key == 'A':
-            self.sm.rotate_base(-0.2)
-        elif key == 'd' or key == 'D':
             self.sm.rotate_base(0.2)
+        elif key == 'd' or key == 'D':
+            self.sm.rotate_base(-0.2)
 
         # Arm extend/retract
         if key == 'q' or key == 'Q':
@@ -238,6 +208,9 @@ class Keys:
             print("Stopping robot")
             self.sm.robot_stop()
             self.quit = 1
+
+        if key == '1':
+            self.sm.auto_box()
 
     def execCommand(self):
         self.sm.execCommand()
