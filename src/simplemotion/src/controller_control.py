@@ -7,6 +7,7 @@ from __future__ import print_function
 import stretch_body.xbox_controller as xc
 import stretch_body.robot as rb
 from stretch_body.hello_utils import *
+import image_capture
 import os
 import time
 import argparse
@@ -368,6 +369,13 @@ def manage_calibration(robot,controller_state):
             print('press the start button to calibrate the robot')
         else:
             first_home_warn = False
+
+def manage_image_capture(robot, controller_state):
+    imc = controller_state['left_button_pressed']
+    
+    if imc:
+        print("Requesting Image Capture...")
+        response = image_capture()
 # ######################### MAIN ########################################
 use_head_mapping=True
 use_dex_wrist_mapping=True
