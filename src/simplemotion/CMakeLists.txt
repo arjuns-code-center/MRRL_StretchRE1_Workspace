@@ -161,6 +161,7 @@ include_directories(
 catkin_install_python(PROGRAMS
   src/keyboard_control.py
   src/controller_control.py
+  src/image_capture.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
