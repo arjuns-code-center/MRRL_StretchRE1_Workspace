@@ -415,6 +415,7 @@ def main():
 
         while True:
             controller_state = xbox_controller.get_state()
+            
             if not robot.is_calibrated():
                 manage_calibration(robot, controller_state)
             else:
@@ -423,6 +424,8 @@ def main():
                 manage_end_of_arm(robot, controller_state)
                 manage_head(robot, controller_state)
                 manage_stow(robot, controller_state)
+                manage_image_capture(robot, controller_state)
+
             manage_shutdown(robot, controller_state)
             robot.push_command()
             time.sleep(0.05)
