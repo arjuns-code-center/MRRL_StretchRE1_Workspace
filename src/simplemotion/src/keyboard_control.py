@@ -104,18 +104,6 @@ class Stretch_Move:
         # possible params for name: head_pan, head_tilt
         self.head.move_by(name, deg_to_rad(degrees), self.v, self.a)
 
-    def auto_box(self, move = 0.5, rotate = 1.65):
-        print("Moving robot in a box")
-
-        for i in range(4):
-            self.move_base(move, True)
-            self.execCommand()
-            
-            self.rotate_base(rotate, True)
-            self.execCommand()
-
-        print("Finished box!")
-
     def dynamixel_servo(self, name='/dev/hello-dynamixel-wrist'):
         servo = sb.dynamixel_XL430.DynamixelXL430(13, name, baud=115200)
         servo.startup()
@@ -208,9 +196,6 @@ class Keys:
             print("Stopping robot")
             self.sm.robot_stop()
             self.quit = 1
-
-        if key == '1':
-            self.sm.auto_box()
 
     def execCommand(self):
         self.sm.execCommand()

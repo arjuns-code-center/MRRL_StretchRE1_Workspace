@@ -8,6 +8,8 @@ import stretch_body.xbox_controller as xc
 import stretch_body.robot as rb
 from stretch_body.hello_utils import *
 import image_capture
+import auto_commands
+import sys, tty, termios
 import os
 import time
 import argparse
@@ -370,12 +372,31 @@ def manage_calibration(robot,controller_state):
         else:
             first_home_warn = False
 
-def manage_image_capture(robot, controller_state):
+def getkeystroke(self):
+    fd=sys.stdin.fileno()
+    old_settings=termios.tcgetattr(fd)
+
+    try:
+        tty.setraw(sys.stdin.fileno())
+        ch=sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(fd,termios.TCSADRAIN,old_settings)
+
+    return ch
+
+def manage_image_capture(controller_state):
     imc = controller_state['left_button_pressed']
     
     if imc:
         print("Requesting Image Capture...")
         response = image_capture()
+
+def manage_autonomous_commands(robot):
+    key = getkeystroke()
+
+    if key == '1':
+        auto_commands.auto_box(robot)
+
 # ######################### MAIN ########################################
 use_head_mapping=True
 use_dex_wrist_mapping=True
@@ -386,6 +407,7 @@ def main():
     xbox_controller = xc.XboxController()
     xbox_controller.start()
     robot = rb.Robot()
+    kb = Keys()
 
     try:
         robot.startup()
@@ -425,6 +447,7 @@ def main():
                 manage_head(robot, controller_state)
                 manage_stow(robot, controller_state)
                 manage_image_capture(robot, controller_state)
+                manage_autonomous_commands(robot)
 
             manage_shutdown(robot, controller_state)
             robot.push_command()
