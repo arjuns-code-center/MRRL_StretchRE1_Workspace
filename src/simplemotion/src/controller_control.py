@@ -372,7 +372,9 @@ def manage_calibration(robot,controller_state):
         else:
             first_home_warn = False
 
-def getkeystroke(self):
+############################ Code written by Arjun #############################
+
+def getkeystroke():
     fd=sys.stdin.fileno()
     old_settings=termios.tcgetattr(fd)
 
