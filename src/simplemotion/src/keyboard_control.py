@@ -8,6 +8,9 @@ import time
 import stretch_body.robot as sb
 from stretch_body.hello_utils import *
 
+sys.path.insert(0, '/home/arjun/motion_ws/src/simplemotion/src/auto_commands')
+from box import auto_box
+
 print("========STRETCH Keyboard Controls========")
 print("Use WASD to move the base")
 print("Use Q and E to extend or retract the arm")
@@ -196,6 +199,9 @@ class Keys:
             print("Stopping robot")
             self.sm.robot_stop()
             self.quit = 1
+
+        if key == '1':
+            auto_box(self.sm.robot)
 
     def execCommand(self):
         self.sm.execCommand()

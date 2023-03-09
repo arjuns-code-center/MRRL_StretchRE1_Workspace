@@ -8,7 +8,6 @@ import stretch_body.xbox_controller as xc
 import stretch_body.robot as rb
 from stretch_body.hello_utils import *
 import image_capture
-import auto_commands
 import sys, tty, termios
 import os
 import time
@@ -36,6 +35,8 @@ parser=argparse.ArgumentParser(description=
 
 args=parser.parse_args()
 
+sys.path.insert(0, '/home/arjun/motion_ws/src/simplemotion/src/auto_commands')
+from box import auto_box
 
 class CommandToLinearMotion():
     def __init__(self, command_dead_zone_value, move_duration_s, max_distance_m, accel_m):
@@ -397,7 +398,7 @@ def manage_autonomous_commands(robot):
     key = getkeystroke()
 
     if key == '1':
-        auto_commands.auto_box(robot)
+        auto_box(robot)
 
 # ######################### MAIN ########################################
 use_head_mapping=True
@@ -409,7 +410,6 @@ def main():
     xbox_controller = xc.XboxController()
     xbox_controller.start()
     robot = rb.Robot()
-    kb = Keys()
 
     try:
         robot.startup()
@@ -448,7 +448,7 @@ def main():
                 manage_end_of_arm(robot, controller_state)
                 manage_head(robot, controller_state)
                 manage_stow(robot, controller_state)
-                manage_image_capture(robot, controller_state)
+                manage_image_capture(controller_state)
                 manage_autonomous_commands(robot)
 
             manage_shutdown(robot, controller_state)
