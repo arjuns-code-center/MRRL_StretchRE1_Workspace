@@ -10,6 +10,7 @@ from stretch_body.hello_utils import *
 
 sys.path.insert(0, '/home/arjun/motion_ws/src/simplemotion/src/auto_commands')
 from box import auto_box
+from navigateObstacles import SimpleAvoid, BetterAvoid
 
 print("========STRETCH Keyboard Controls========")
 print("Use WASD to move the base")
@@ -22,6 +23,7 @@ print("Use H and J to move gripper")
 print("Use F and G to control wrist pitch")
 print("Use V and B to control wrist roll")
 print("Use T to stop robot")
+print("Use number keys to trigger auto commands")
 
 class Stretch_Move:
     def __init__(self):
@@ -202,6 +204,12 @@ class Keys:
 
         if key == '1':
             auto_box(self.sm.robot)
+
+        # if key == '2':
+        #     SimpleAvoid(self.sm.robot)
+
+        # if key == '3':
+        #     BetterAvoid(self.sm.robot)
 
     def execCommand(self):
         self.sm.execCommand()
