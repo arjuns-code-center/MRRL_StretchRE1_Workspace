@@ -4,7 +4,7 @@
 # SimpleAvoid: performs avoidance while continuously going forward
 # BetterAvoid: performs avoidance and follows you when you are above some avoid threshold
 
-# TODO: fix lidar ranges 
+# TODO: fix lidar ranges and figure out why it doesnt move forward in takeAction
 # TODO: write takeBetterAction function in BetterAvoid class
 
 import rospy
