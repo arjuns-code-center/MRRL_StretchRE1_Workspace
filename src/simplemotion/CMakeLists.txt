@@ -163,6 +163,7 @@ catkin_install_python(PROGRAMS
   src/controller_control.py
   src/image_capture.py
   src/auto_commands/box.py
+  src/auto_commands/navigateObstacles.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

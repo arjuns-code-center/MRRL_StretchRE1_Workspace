@@ -4,18 +4,21 @@
 # SimpleAvoid: performs avoidance while continuously going forward
 # BetterAvoid: performs avoidance and follows you when you are above some avoid threshold
 
+# TODO: fix lidar ranges 
 # TODO: write takeBetterAction function in BetterAvoid class
 
 import rospy
 from sensor_msgs.msg import LaserScan
 import time
+import stretch_body.robot as sb
 
 class SimpleAvoid:
-    def __init__(self, robot):
-        self.start_time = time.time()
+    def __init__(self):
+        self.robot = sb.Robot()
+        self.robot.startup()
 
-        self.robot = robot
-        self.base = robot.base
+        self.base = self.robot.base
+        self.start_time = time.time()
 
         self.v = 10.0
         self.a = 5.0
@@ -23,19 +26,16 @@ class SimpleAvoid:
 
         self.distance = 1
 
-        print("Navigating robot around obstacles")
-
-        rospy.init_node('laser_navigation')
-        sub = rospy.Subsciber('/m2wr/laser/scan', LaserScan, self.computeRegions)
+        rospy.init_node('laser_scan')
+        self.sub = rospy.Subscriber('/scan', LaserScan, self.computeRegions)
         rospy.spin()
 
     def computeRegions(self, msg):
         regions = {
-        'fright': min(min(msg.ranges[144:287]), 10) < self.distance,
-        'front':  min(min(msg.ranges[288:431]), 10) < self.distance,
-        'fleft':  min(min(msg.ranges[432:575]), 10) < self.distance
+        'fleft': min(min(msg.ranges[250:650]), 5) < self.distance,
+        'front':  min(min(msg.ranges[0:200] + msg.ranges[950:]), 5) < self.distance,
+        'fright':  min(min(msg.ranges[650:950]), 5) < self.distance
         }
-
         self.takeAction(regions)
 
     def takeAction(self, regions):
@@ -47,10 +47,10 @@ class SimpleAvoid:
 
             if regions['fright']:
                 state_description = 'case 3 - front and fright'
-                xr = -0.3
+                xr = 0.3
             elif regions['fleft']:
                 state_description = 'case 4 - front and fleft'
-                xr = 0.3
+                xr = -0.3
             elif regions['fleft'] and regions['fright']:
                 state_description = 'case 5 - front and fleft and fright'
                 xm = -0.5
