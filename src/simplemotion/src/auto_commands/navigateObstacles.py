@@ -4,7 +4,6 @@
 # SimpleAvoid: performs avoidance while continuously going forward
 # BetterAvoid: performs avoidance and follows you when you are above some avoid threshold
 
-# TODO: fix lidar ranges and figure out why it doesnt move forward in takeAction
 # TODO: write takeBetterAction function in BetterAvoid class
 
 import rospy
@@ -32,11 +31,12 @@ class SimpleAvoid:
         rospy.spin()
 
     def computeRegions(self, msg):
-        angles = numpy.linspace(msg.angle_min, msg.angle_max, msg.angle_increment)
-        fleft = numpy.where(angles == (math.pi/6))[0][0]
-        left = numpy.where(angles == (math.pi/3))[0][0]
-        fright = numpy.where(angles == ((11*math.pi) / 6))[0][0]
-        right = numpy.where(angles == ((5*math.pi) / 3))[0][0]
+        # min_angle = -pi, max_angle = pi, and they both point in front of stretch, where x axis is
+        # calculate a difference from min_angle using unit circle, and then use that to get range index
+        fleft = int((math.pi/3) / msg.angle_increment)
+        left = int((2*math.pi/3) / msg.angle_increment)
+        fright = int((5*math.pi/3) / msg.angle_increment)
+        right = int((4*math.pi/3) / msg.angle_increment)
 
         regions = {
         'fleft': min(min(msg.ranges[fleft:left]), 10) < self.distance,
@@ -44,42 +44,43 @@ class SimpleAvoid:
         'fright':  min(min(msg.ranges[right:fright]), 10) < self.distance
         }
 
-        minRange = 9999
-        minRangeIndex = 0
-
-        for index in range(len(msg.ranges)):
-            if msg.ranges[index] < minRange:
-                minRange = msg.ranges[index]
-                minRangeIndex = index
-
-        print("Minimum range index: {}".format(minRangeIndex))
         self.takeAction(regions)
 
     def takeAction(self, regions):
-        xm = 0.5
+        xm = 0
         xr = 0
 
         if regions['front']:
             state_description = 'case 2 - front'
+            xm = 0
 
             if regions['fright']:
                 state_description = 'case 3 - front and fright'
                 xr = 0.3
+                xm = 0
             elif regions['fleft']:
                 state_description = 'case 4 - front and fleft'
                 xr = -0.3
+                xm = 0
             elif regions['fleft'] and regions['fright']:
                 state_description = 'case 5 - front and fleft and fright'
-                xm = -0.5
+                xm = -0.1
+                xr = 0
         elif regions['fleft'] or regions['fright']:
             state_description = 'case 8 - fleft or fright'
+            xm = 0.1
         else:
             state_description = 'case 1 - nothing'
+            xm = 0.1
 
-        self.move_base(xm)
-        self.rotate_base(xr)
+        if xm != 0:
+            self.move_base(xm)
+        
+        if xr != 0:
+            self.rotate_base(xr)
+            
         self.robot.push_command()
-        time.delay(100)
+        time.sleep(0.1)
 
     def move_base(self, x, wait=False):
         # Use distance
