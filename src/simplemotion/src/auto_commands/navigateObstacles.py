@@ -9,6 +9,7 @@
 
 import rospy
 from sensor_msgs.msg import LaserScan
+import numpy, math
 import time
 import stretch_body.robot as sb
 
@@ -31,11 +32,27 @@ class SimpleAvoid:
         rospy.spin()
 
     def computeRegions(self, msg):
+        angles = numpy.linspace(msg.angle_min, msg.angle_max, msg.angle_increment)
+        fleft = numpy.where(angles == (math.pi/6))[0][0]
+        left = numpy.where(angles == (math.pi/3))[0][0]
+        fright = numpy.where(angles == ((11*math.pi) / 6))[0][0]
+        right = numpy.where(angles == ((5*math.pi) / 3))[0][0]
+
         regions = {
-        'fleft': min(min(msg.ranges[250:650]), 5) < self.distance,
-        'front':  min(min(msg.ranges[0:200] + msg.ranges[950:]), 5) < self.distance,
-        'fright':  min(min(msg.ranges[650:950]), 5) < self.distance
+        'fleft': min(min(msg.ranges[fleft:left]), 10) < self.distance,
+        'front':  min(min(msg.ranges[0:fleft] + msg.ranges[fright:]), 10) < self.distance,
+        'fright':  min(min(msg.ranges[right:fright]), 10) < self.distance
         }
+
+        minRange = 9999
+        minRangeIndex = 0
+
+        for index in range(len(msg.ranges)):
+            if msg.ranges[index] < minRange:
+                minRange = msg.ranges[index]
+                minRangeIndex = index
+
+        print("Minimum range index: {}".format(minRangeIndex))
         self.takeAction(regions)
 
     def takeAction(self, regions):
@@ -59,35 +76,10 @@ class SimpleAvoid:
         else:
             state_description = 'case 1 - nothing'
 
-        # if regions['front'] > self.distance and regions['fleft'] > self.distance and regions['fright'] > self.distance:
-        #     state_description = 'case 1 - nothing'
-        # elif regions['front'] < self.distance and regions['fleft'] > self.distance and regions['fright'] > self.distance:
-        #     state_description = 'case 2 - front'
-        #     xr = -0.3
-        # elif regions['front'] > self.distance and regions['fleft'] > self.distance and regions['fright'] < self.distance:
-        #     state_description = 'case 3 - fright'
-        #     xr = -0.3
-        # elif regions['front'] > self.distance and regions['fleft'] < self.distance and regions['fright'] > self.distance:
-        #     state_description = 'case 4 - fleft'
-        #     xr = 0.3
-        # elif regions['front'] < self.distance and regions['fleft'] > self.distance and regions['fright'] < self.distance:
-        #     state_description = 'case 5 - front and fright'
-        #     xr = -0.3
-        # elif regions['front'] < self.distance and regions['fleft'] < self.distance and regions['fright'] > self.distance:
-        #     state_description = 'case 6 - front and fleft'
-        #     xr = 0.3
-        # elif regions['front'] < self.distance and regions['fleft'] < self.distance and regions['fright'] < self.distance:
-        #     state_description = 'case 7 - front and fleft and fright'
-        #     xm = -0.5
-        # elif regions['front'] > self.distance and regions['fleft'] < self.distance and regions['fright'] < self.distance:
-        #     state_description = 'case 8 - fleft and fright'
-        # else:
-        #     state_description = 'unknown case'
-
-        print(state_description)
         self.move_base(xm)
         self.rotate_base(xr)
         self.robot.push_command()
+        time.delay(100)
 
     def move_base(self, x, wait=False):
         # Use distance
