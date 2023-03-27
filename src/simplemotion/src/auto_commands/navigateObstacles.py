@@ -8,7 +8,7 @@
 
 import rospy
 from sensor_msgs.msg import LaserScan
-import numpy, math
+import math
 import time
 import stretch_body.robot as sb
 
@@ -116,41 +116,67 @@ class BetterAvoid:
         rospy.spin()
 
     def computeBetterRegions(self, msg):
-        regions = {
-        'right': min(min(msg.ranges[0:143]), 10) < self.distance,
-        'fright': min(min(msg.ranges[144:287]), 10) < self.distance,
-        'front':  min(min(msg.ranges[288:431]), 10) < self.distance,
-        'fleft':  min(min(msg.ranges[432:575]), 10) < self.distance,
-        'left': min(min(msg.ranges[576:719]), 10) < self.distance
+        # min_angle = -pi, max_angle = pi, and they both point in front of stretch, where x axis is
+        # calculate a difference from min_angle using unit circle, and then use that to get range index
+        fleft = int((math.pi/3) / msg.angle_increment)
+        left = int((2*math.pi/3) / msg.angle_increment)
+        fright = int((5*math.pi/3) / msg.angle_increment)
+        right = int((4*math.pi/3) / msg.angle_increment)
+        back = int((math.pi) / msg.angle_increment)
+
+        regionsClose = {
+        'left': min(min(msg.ranges[left:back]), 10) < self.distance,
+        'fleft': min(min(msg.ranges[fleft:left]), 10) < self.distance,
+        'front':  min(min(msg.ranges[0:fleft] + msg.ranges[fright:]), 10) < self.distance,
+        'fright':  min(min(msg.ranges[right:fright]), 10) < self.distance,
+        'right': min(min(msg.ranges[back:right]), 10) < self.distance
         }
 
-        self.takeBetterAction(regions)
+        regionsFar = {
+        'left': min(min(msg.ranges[left:back]), 10) < 2*self.distance,
+        'fleft': min(min(msg.ranges[fleft:left]), 10) < 2*self.distance,
+        'front':  min(min(msg.ranges[0:fleft] + msg.ranges[fright:]), 10) < 2*self.distance,
+        'fright':  min(min(msg.ranges[right:fright]), 10) < 2*self.distance,
+        'right': min(min(msg.ranges[back:right]), 10) < 2*self.distance
+        }
 
-    def takeBetterAction(self, regions):
-        xm = 0.5
+        self.takeAction(regionsClose, regionsFar)
+
+    def takeBetterAction(self, moveBack, moveForward):
+        xm = 0
         xr = 0
 
-        if regions['front']:
+        if moveBack['front']:
             state_description = 'case 2 - front'
+            xm = 0
 
-            if regions['fright']:
+            if moveBack['fright']:
                 state_description = 'case 3 - front and fright'
-                xr = -0.3
-            elif regions['fleft']:
-                state_description = 'case 4 - front and fleft'
                 xr = 0.3
-            elif regions['fleft'] and regions['fright']:
+                xm = 0
+            elif moveBack['fleft']:
+                state_description = 'case 4 - front and fleft'
+                xr = -0.3
+                xm = 0
+            elif moveBack['fleft'] and moveBack['fright']:
                 state_description = 'case 5 - front and fleft and fright'
-                xm = -0.5
-        elif regions['fleft'] or regions['fright']:
+                xm = -0.1
+                xr = 0
+        elif moveBack['fleft'] or moveBack['fright']:
             state_description = 'case 8 - fleft or fright'
+            xm = 0.1
         else:
             state_description = 'case 1 - nothing'
+            xm = 0.1
 
-        print(state_description)
-        self.move_base(xm)
-        self.rotate_base(xr)
+        if xm != 0:
+            self.move_base(xm)
+        
+        if xr != 0:
+            self.rotate_base(xr)
+            
         self.robot.push_command()
+        time.sleep(0.1)
 
     def move_base(self, x, wait=False):
         # Use distance
