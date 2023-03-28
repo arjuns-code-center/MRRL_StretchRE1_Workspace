@@ -11,6 +11,7 @@ from sensor_msgs.msg import LaserScan
 import math
 import time
 import stretch_body.robot as sb
+import random
 
 class SimpleAvoid:
     def __init__(self):
@@ -20,11 +21,12 @@ class SimpleAvoid:
         self.base = self.robot.base
         self.start_time = time.time()
 
-        self.v = 10.0
-        self.a = 5.0
+        self.v = 10.0 #self.base.params['motion']['max']['vel_m']
+        self.a = 5.0 #self.base.params['motion']['max']['accel_m']
         self.timeout = 1
 
-        self.distance = 1
+        self.distance = 0.75
+        self.ignore = 0.25
 
         rospy.init_node('laser_scan')
         self.sub = rospy.Subscriber('/scan', LaserScan, self.computeRegions)
@@ -38,10 +40,14 @@ class SimpleAvoid:
         fright = int((5*math.pi/3) / msg.angle_increment)
         right = int((4*math.pi/3) / msg.angle_increment)
 
+        fleftClosest = min(i for i in msg.ranges[fleft:left] if i > self.ignore)
+        frontClosest = min(i for i in msg.ranges[0:fleft] + msg.ranges[fright:] if i > self.ignore)
+        frightClosest = min(i for i in msg.ranges[right:fright] if i > self.ignore)
+
         regions = {
-        'fleft': min(min(msg.ranges[fleft:left]), 10) < self.distance,
-        'front':  min(min(msg.ranges[0:fleft] + msg.ranges[fright:]), 10) < self.distance,
-        'fright':  min(min(msg.ranges[right:fright]), 10) < self.distance
+        'fleft': fleftClosest < self.distance,
+        'front': frontClosest < self.distance,
+        'fright': frightClosest < self.distance
         }
 
         self.takeAction(regions)
@@ -50,36 +56,33 @@ class SimpleAvoid:
         xm = 0
         xr = 0
 
-        if regions['front']:
-            state_description = 'case 2 - front'
-            xm = 0
-
-            if regions['fright']:
-                state_description = 'case 3 - front and fright'
-                xr = 0.3
-                xm = 0
-            elif regions['fleft']:
-                state_description = 'case 4 - front and fleft'
-                xr = -0.3
-                xm = 0
-            elif regions['fleft'] and regions['fright']:
-                state_description = 'case 5 - front and fleft and fright'
-                xm = -0.1
-                xr = 0
-        elif regions['fleft'] or regions['fright']:
-            state_description = 'case 8 - fleft or fright'
-            xm = 0.1
+        if regions['fright']:
+            state_description = 'case 2 - fright'
+            xr = 0.15
+        elif regions['fleft']:
+            state_description = 'case 3 - fleft'
+            xr = -0.15
+        elif regions['front']:
+            state_description = 'case 4 - front (turning randomly)'
+            choice = random.randint(0, 1) # randomly choose a direction to rotate in
+            if choice:
+                xr = 0.15
+            else:
+                xr = -0.15
         else:
-            state_description = 'case 1 - nothing'
-            xm = 0.1
+            state_description = 'case 1 - nothing in front'
+            xm = 0.15
+
+        print(state_description)
 
         if xm != 0:
             self.move_base(xm)
+            self.robot.push_command()
         
         if xr != 0:
             self.rotate_base(xr)
+            self.robot.push_command()
             
-        self.robot.push_command()
         time.sleep(0.1)
 
     def move_base(self, x, wait=False):
