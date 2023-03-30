@@ -11,21 +11,21 @@ from sensor_msgs.msg import LaserScan
 import math
 import time
 import stretch_body.robot as sb
-import random
 
 class SimpleAvoid:
     def __init__(self):
+        self.start_time = time.time()
+
         self.robot = sb.Robot()
         self.robot.startup()
 
         self.base = self.robot.base
-        self.start_time = time.time()
 
         self.v = 10.0 #self.base.params['motion']['max']['vel_m']
         self.a = 5.0 #self.base.params['motion']['max']['accel_m']
         self.timeout = 1
 
-        self.distance = 0.75
+        self.distance = 1.0
         self.ignore = 0.25
 
         rospy.init_node('laser_scan')
@@ -35,10 +35,10 @@ class SimpleAvoid:
     def computeRegions(self, msg):
         # min_angle = -pi, max_angle = pi, and they both point in front of stretch, where x axis is
         # calculate a difference from min_angle using unit circle, and then use that to get range index
-        fleft = int((math.pi/3) / msg.angle_increment)
-        left = int((2*math.pi/3) / msg.angle_increment)
-        fright = int((5*math.pi/3) / msg.angle_increment)
-        right = int((4*math.pi/3) / msg.angle_increment)
+        fleft = int((math.pi/4) / msg.angle_increment)
+        left = int((math.pi/2) / msg.angle_increment)
+        fright = int((7*math.pi/4) / msg.angle_increment)
+        right = int((3*math.pi/2) / msg.angle_increment)
 
         fleftClosest = min(i for i in msg.ranges[fleft:left] if i > self.ignore)
         frontClosest = min(i for i in msg.ranges[0:fleft] + msg.ranges[fright:] if i > self.ignore)
@@ -63,12 +63,8 @@ class SimpleAvoid:
             state_description = 'case 3 - fleft'
             xr = -0.15
         elif regions['front']:
-            state_description = 'case 4 - front (turning randomly)'
-            choice = random.randint(0, 1) # randomly choose a direction to rotate in
-            if choice:
-                xr = 0.15
-            else:
-                xr = -0.15
+            state_description = 'case 4 - front (turning right)'
+            xr = -0.15
         else:
             state_description = 'case 1 - nothing in front'
             xm = 0.15
@@ -100,85 +96,113 @@ class SimpleAvoid:
             self.base.wait_until_at_setpoint(self.timeout)
 
 class BetterAvoid:
-    def __init__(self, robot):
+    def __init__(self):
         self.start_time = time.time()
 
-        self.robot = robot
-        self.base = robot.base
+        self.robot = sb.Robot()
+        self.robot.startup()
+
+        self.base = self.robot.base
 
         self.v = 10.0
         self.a = 5.0
         self.timeout = 1
 
-        self.distance = 1
+        self.distance = 0.75
+        self.ignore = 0.25
+
+        self.currentState = None
+        self.previousState = None
+        self.currentStateChanged = True
 
         print("Navigating robot around obstacles more robustly")
 
-        rospy.init_node('better_laser_navigation')
-        sub = rospy.Subsciber('/m2wr/laser/scan', LaserScan, self.computeBetterRegions)
+        rospy.init_node('laser_scan')
+        self.sub = rospy.Subscriber('/scan', LaserScan, self.computeBetterRegions)
         rospy.spin()
 
     def computeBetterRegions(self, msg):
         # min_angle = -pi, max_angle = pi, and they both point in front of stretch, where x axis is
         # calculate a difference from min_angle using unit circle, and then use that to get range index
-        fleft = int((math.pi/3) / msg.angle_increment)
-        left = int((2*math.pi/3) / msg.angle_increment)
-        fright = int((5*math.pi/3) / msg.angle_increment)
-        right = int((4*math.pi/3) / msg.angle_increment)
-        back = int((math.pi) / msg.angle_increment)
+        fleft = int((math.pi/4) / msg.angle_increment)
+        left = int((math.pi/2) / msg.angle_increment)
+        fright = int((7*math.pi/4) / msg.angle_increment)
+        right = int((3*math.pi/2) / msg.angle_increment)
 
-        regionsClose = {
-        'left': min(min(msg.ranges[left:back]), 10) < self.distance,
-        'fleft': min(min(msg.ranges[fleft:left]), 10) < self.distance,
-        'front':  min(min(msg.ranges[0:fleft] + msg.ranges[fright:]), 10) < self.distance,
-        'fright':  min(min(msg.ranges[right:fright]), 10) < self.distance,
-        'right': min(min(msg.ranges[back:right]), 10) < self.distance
+        fleftClosest = min(i for i in msg.ranges[fleft:left] if i > self.ignore)
+        frontClosest = min(i for i in msg.ranges[0:fleft] + msg.ranges[fright:] if i > self.ignore)
+        frightClosest = min(i for i in msg.ranges[right:fright] if i > self.ignore)
+        backClosest = min(i for i in msg.ranges[left:right] if i > self.ignore)
+
+        regions = {
+        'fleft_backup': fleftClosest < self.distance,
+        'front_backup':  frontClosest < self.distance,
+        'fright_backup':  frightClosest < self.distance,
+        'back_gofront': backClosest < self.distance,
+
+        'fleft': fleftClosest < 2*self.distance,
+        'front':  frontClosest < 2*self.distance,
+        'fright':  frightClosest < 2*self.distance,
+        'back': backClosest < 2*self.distance
         }
 
-        regionsFar = {
-        'left': min(min(msg.ranges[left:back]), 10) < 2*self.distance,
-        'fleft': min(min(msg.ranges[fleft:left]), 10) < 2*self.distance,
-        'front':  min(min(msg.ranges[0:fleft] + msg.ranges[fright:]), 10) < 2*self.distance,
-        'fright':  min(min(msg.ranges[right:fright]), 10) < 2*self.distance,
-        'right': min(min(msg.ranges[back:right]), 10) < 2*self.distance
-        }
+        self.takeBetterAction(regions)
+        if self.currentStateChanged:
+            self.previousState = self.currentState
 
-        self.takeAction(regionsClose, regionsFar)
-
-    def takeBetterAction(self, moveBack, moveForward):
+    def takeBetterAction(self, regions):
         xm = 0
         xr = 0
+        tempState = self.currentState
 
-        if moveBack['front']:
-            state_description = 'case 2 - front'
-            xm = 0
+        if regions['fright']:
+            tempState = 'fright'
 
-            if moveBack['fright']:
-                state_description = 'case 3 - front and fright'
-                xr = 0.3
-                xm = 0
-            elif moveBack['fleft']:
-                state_description = 'case 4 - front and fleft'
-                xr = -0.3
-                xm = 0
-            elif moveBack['fleft'] and moveBack['fright']:
-                state_description = 'case 5 - front and fleft and fright'
-                xm = -0.1
-                xr = 0
-        elif moveBack['fleft'] or moveBack['fright']:
-            state_description = 'case 8 - fleft or fright'
-            xm = 0.1
+            if self.previousState == 'front':
+                xr = -0.15
+            else:
+                xr = 0.15
+        elif regions['fleft']:
+            tempState = 'fleft'
+
+            if self.previousState == 'front':
+                xr = 0.15
+            else:
+                xr = -0.15
+        elif regions['front']:
+            tempState = 'front'
+
+            if self.previousState == 'fright':
+                xr = -0.15
+            elif self.previousState == 'fleft':
+                xr = 0.15
+            else:
+                xr = -0.15
+        elif regions['fright_backup'] or regions['fleft_backup'] or regions['front_backup']:
+            tempState = 'backup'
+            xm = -0.15
+        elif regions['back_gofront']:
+            tempState = 'gofront'
+            xm = 0.15
         else:
-            state_description = 'case 1 - nothing'
-            xm = 0.1
+            tempState = 'nothing'
+            xm = 0.15
+
+        print(tempState)
+
+        if tempState == self.currentState:
+            self.currentStateChanged = False
+        else:
+            self.currentStateChanged = True
 
         if xm != 0:
             self.move_base(xm)
+            self.robot.push_command()
         
         if xr != 0:
             self.rotate_base(xr)
+            self.robot.push_command()
             
-        self.robot.push_command()
         time.sleep(0.1)
 
     def move_base(self, x, wait=False):
@@ -196,5 +220,5 @@ class BetterAvoid:
             self.base.wait_until_at_setpoint(self.timeout)
 
 if __name__ == "__main__":
-    SimpleAvoid()
-    #BetterAvoid()
+    #SimpleAvoid()
+    BetterAvoid()
