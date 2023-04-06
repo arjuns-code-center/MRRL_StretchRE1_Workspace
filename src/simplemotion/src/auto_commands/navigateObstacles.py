@@ -1,21 +1,27 @@
 # Author: Arjun Viswanathan
 # Date created: 3/9/23
-# Navigate around obstacles in front of stretch using LaserScan in autonomous control
+# Last modified date: 4/6/23
+# Summary: Navigate around obstacles in front of stretch using LiDAR in autonomous mode
 # SimpleAvoid: performs avoidance while continuously going forward
-# BetterAvoid: performs avoidance and follows you when you are above some avoid threshold
+# BetterAvoid: performs avoidance and considers previous states to navigate better
 
-# TODO: write takeBetterAction function in BetterAvoid class
+# How to run the file:
+# rosrun simplemotion navigateObstacles.py --type=<SPECIFY TYPE>
 
-import rospy
-from sensor_msgs.msg import LaserScan
+# TODO: test out BetterAvoid
+
+# Import system packages
 import math
 import time
+import argparse
+
+# Import ROS specific packages
+import rospy
+from sensor_msgs.msg import LaserScan
 import stretch_body.robot as sb
 
 class SimpleAvoid:
     def __init__(self):
-        self.start_time = time.time()
-
         self.robot = sb.Robot()
         self.robot.startup()
 
@@ -53,6 +59,8 @@ class SimpleAvoid:
         self.takeAction(regions)
 
     def takeAction(self, regions):
+        # Simple case where it just reflexively takes an action to avoid obstacles
+        # Major flaw: can deadlock between 2 states 
         xm = 0
         xr = 0
 
@@ -97,8 +105,6 @@ class SimpleAvoid:
 
 class BetterAvoid:
     def __init__(self):
-        self.start_time = time.time()
-
         self.robot = sb.Robot()
         self.robot.startup()
 
@@ -114,8 +120,6 @@ class BetterAvoid:
         self.currentState = None
         self.previousState = None
         self.currentStateChanged = True
-
-        print("Navigating robot around obstacles more robustly")
 
         rospy.init_node('laser_scan')
         self.sub = rospy.Subscriber('/scan', LaserScan, self.computeBetterRegions)
@@ -134,6 +138,7 @@ class BetterAvoid:
         frightClosest = min(i for i in msg.ranges[right:fright] if i > self.ignore)
         backClosest = min(i for i in msg.ranges[left:right] if i > self.ignore)
 
+        # Here we want to backup and move away from obstacles when they get too close
         regions = {
         'fleft_backup': fleftClosest < self.distance,
         'front_backup':  frontClosest < self.distance,
@@ -147,10 +152,14 @@ class BetterAvoid:
         }
 
         self.takeBetterAction(regions)
-        if self.currentStateChanged:
+        if self.currentStateChanged: # only print the state when it changes
+            print(self.currentState)
             self.previousState = self.currentState
 
     def takeBetterAction(self, regions):
+        # Keep track of a previous state so we do not deadlock between 2 actions forever
+        # Stretch can detect an obstacle in fright, turn left to avoid, and detect in front, turn right to avoid, and continue doing this forever
+        # Based on the previous state, actions will change
         xm = 0
         xr = 0
         tempState = self.currentState
@@ -180,16 +189,23 @@ class BetterAvoid:
                 xr = -0.15
         elif regions['fright_backup'] or regions['fleft_backup'] or regions['front_backup']:
             tempState = 'backup'
-            xm = -0.15
+
+            if self.previousState == 'gofront':
+                xr = -0.15
+            else:
+                xm = -0.15
         elif regions['back_gofront']:
             tempState = 'gofront'
-            xm = 0.15
+
+            if self.previousState == 'fright_backup' or self.previousState == 'fleft_backup' or self.previousState == 'front_backup':
+                xr = -0.15
+            else:
+                xm = 0.15
         else:
             tempState = 'nothing'
             xm = 0.15
 
-        print(tempState)
-
+        # If state did not change, we do not update previous state. Or else both can become the same and we lose our previous information
         if tempState == self.currentState:
             self.currentStateChanged = False
         else:
@@ -220,5 +236,17 @@ class BetterAvoid:
             self.base.wait_until_at_setpoint(self.timeout)
 
 if __name__ == "__main__":
-    #SimpleAvoid()
-    BetterAvoid()
+    start_time = time.ctime()
+    print("{}: Starting Navigation Algorithm...".format(start_time))
+
+    args = argparse.ArgumentParser()
+    args.add_argument('--algotype', default='simple', type=str, help='what avoidance algorithm to run')
+    args = args.parse_args()
+    algorithmType = args.algotype
+
+    if algorithmType == 'simple':
+        print("Using SimpleAvoid algorithm to navigate obstacles")
+        SimpleAvoid()
+    elif algorithmType == 'better':
+        print("Using BetterAvoid algorithm to navigate obstacles")
+        BetterAvoid()
