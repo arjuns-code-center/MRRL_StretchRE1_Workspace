@@ -8,7 +8,7 @@
 # How to run the file:
 # rosrun simplemotion navigateObstacles.py --algotype=<SPECIFY TYPE>
 
-# TODO: rewrite takeBetterAction to have all 8 cases with front, fleft, and fright
+# TODO: rewrite takeBetterAction
 # TODO: test better avoid
 
 # Import system packages
@@ -167,21 +167,7 @@ class BetterAvoid:
         xr = 0
         tempState = self.currentState
 
-        if regions['fright']:
-            tempState = 'fright'
-
-            if self.previousState == 'front':
-                xr = -self.rotBy
-            else:
-                xr = self.rotBy
-        elif regions['fleft']:
-            tempState = 'fleft'
-
-            if self.previousState == 'front':
-                xr = self.rotBy
-            else:
-                xr = -self.rotBy
-        elif regions['front']:
+        if regions['front'] and not regions['fright'] and not regions['fleft']:
             tempState = 'front'
 
             if self.previousState == 'fright':
@@ -190,6 +176,33 @@ class BetterAvoid:
                 xr = self.rotBy
             else:
                 xr = -self.rotBy
+        elif regions['fright'] and not regions['front'] and not regions['fleft']:
+            tempState = 'fright'
+
+            if self.previousState == 'front':
+                xr = -self.rotBy
+            else:
+                xr = self.rotBy
+        elif regions['fleft'] and not regions['front'] and not regions['fright']:
+            tempState = 'fleft'
+
+            if self.previousState == 'front':
+                xr = self.rotBy
+            else:
+                xr = -self.rotBy
+
+        # Get these to work with previous state, if possible
+        elif regions['front'] and regions['fright'] and not regions['fleft']:
+            tempState = 'front and fright'
+            xr = self.rotBy
+        elif regions['front'] and regions['fleft'] and not regions['fright']:
+            tempState = 'front and fleft'
+            xr = -self.rotBy
+        elif regions['fleft'] and regions['fright'] and not regions['front']:
+            tempState = 'fleft and fright'
+            xm = self.moveBy
+        elif regions['front'] and regions['fleft'] and regions['fright']:
+            tempState = 'all'
         # elif regions['fright_backup'] or regions['fleft_backup'] or regions['front_backup']:
         #     tempState = 'backup'
 
