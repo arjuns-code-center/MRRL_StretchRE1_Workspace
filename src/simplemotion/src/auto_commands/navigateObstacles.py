@@ -6,9 +6,10 @@
 # BetterAvoid: performs avoidance and considers previous states to navigate better
 
 # How to run the file:
-# rosrun simplemotion navigateObstacles.py --type=<SPECIFY TYPE>
+# rosrun simplemotion navigateObstacles.py --algotype=<SPECIFY TYPE>
 
-# TODO: test out BetterAvoid
+# TODO: rewrite takeBetterAction to have all 8 cases with front, fleft, and fright
+# TODO: test better avoid
 
 # Import system packages
 import math
@@ -110,12 +111,14 @@ class BetterAvoid:
 
         self.base = self.robot.base
 
+        self.moveBy = 0.15
+        self.rotBy = 0.15
         self.v = 10.0
         self.a = 5.0
         self.timeout = 1
 
-        self.distance = 0.75
-        self.ignore = 0.25
+        self.distance = 0.4
+        self.ignore = 0.3
 
         self.currentState = None
         self.previousState = None
@@ -136,24 +139,24 @@ class BetterAvoid:
         fleftClosest = min(i for i in msg.ranges[fleft:left] if i > self.ignore)
         frontClosest = min(i for i in msg.ranges[0:fleft] + msg.ranges[fright:] if i > self.ignore)
         frightClosest = min(i for i in msg.ranges[right:fright] if i > self.ignore)
-        backClosest = min(i for i in msg.ranges[left:right] if i > self.ignore)
+        #backClosest = min(i for i in msg.ranges[left:right] if i > self.ignore)
 
         # Here we want to backup and move away from obstacles when they get too close
         regions = {
         'fleft_backup': fleftClosest < self.distance,
         'front_backup':  frontClosest < self.distance,
         'fright_backup':  frightClosest < self.distance,
-        'back_gofront': backClosest < self.distance,
+        #'back_gofront': backClosest < self.distance + 0.15,
 
         'fleft': fleftClosest < 2*self.distance,
         'front':  frontClosest < 2*self.distance,
-        'fright':  frightClosest < 2*self.distance,
-        'back': backClosest < 2*self.distance
+        'fright':  frightClosest < 2*self.distance
+        #'back': backClosest < 2*self.distance
         }
 
         self.takeBetterAction(regions)
         if self.currentStateChanged: # only print the state when it changes
-            print(self.currentState)
+            print("Current: {}, Previous: {}".format(self.currentState, self.previousState))
             self.previousState = self.currentState
 
     def takeBetterAction(self, regions):
@@ -168,48 +171,50 @@ class BetterAvoid:
             tempState = 'fright'
 
             if self.previousState == 'front':
-                xr = -0.15
+                xr = -self.rotBy
             else:
-                xr = 0.15
+                xr = self.rotBy
         elif regions['fleft']:
             tempState = 'fleft'
 
             if self.previousState == 'front':
-                xr = 0.15
+                xr = self.rotBy
             else:
-                xr = -0.15
+                xr = -self.rotBy
         elif regions['front']:
             tempState = 'front'
 
             if self.previousState == 'fright':
-                xr = -0.15
+                xr = -self.rotBy
             elif self.previousState == 'fleft':
-                xr = 0.15
+                xr = self.rotBy
             else:
-                xr = -0.15
-        elif regions['fright_backup'] or regions['fleft_backup'] or regions['front_backup']:
-            tempState = 'backup'
+                xr = -self.rotBy
+        # elif regions['fright_backup'] or regions['fleft_backup'] or regions['front_backup']:
+        #     tempState = 'backup'
 
-            if self.previousState == 'gofront':
-                xr = -0.15
-            else:
-                xm = -0.15
-        elif regions['back_gofront']:
-            tempState = 'gofront'
+        #     if self.previousState == 'gofront':
+        #         xr = -1.57
+        #     else:
+        #         xm = -self.moveBy
+        # elif regions['back_gofront']:
+        #     tempState = 'gofront'
 
-            if self.previousState == 'fright_backup' or self.previousState == 'fleft_backup' or self.previousState == 'front_backup':
-                xr = -0.15
-            else:
-                xm = 0.15
+        #     if self.previousState == 'backup':
+        #         xr = -1.57
+        #     else:
+        #         xm = self.moveBy
         else:
             tempState = 'nothing'
-            xm = 0.15
+            xm = self.moveBy
 
         # If state did not change, we do not update previous state. Or else both can become the same and we lose our previous information
         if tempState == self.currentState:
             self.currentStateChanged = False
         else:
             self.currentStateChanged = True
+
+        self.currentState = tempState
 
         if xm != 0:
             self.move_base(xm)
