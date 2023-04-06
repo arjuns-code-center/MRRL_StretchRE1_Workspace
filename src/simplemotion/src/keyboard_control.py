@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
-# Arjun Viswanathan
-# 2/16/23
-# Main script to move stretch with keyboard input
+# Author: Arjun Viswanathan
+# Date created: 2/16/23
+# Last modified date: 3/9/23
+# Summary: Main script to move stretch with keyboard input
 
 import sys, tty, termios
 import time
 import stretch_body.robot as sb
 from stretch_body.hello_utils import *
-
-sys.path.insert(0, '/home/arjun/motion_ws/src/simplemotion/src/auto_commands')
-from box import auto_box
-from navigateObstacles import SimpleAvoid, BetterAvoid
 
 print("========STRETCH Keyboard Controls========")
 print("Use WASD to move the base")
@@ -201,15 +198,6 @@ class Keys:
             print("Stopping robot")
             self.sm.robot_stop()
             self.quit = 1
-
-        if key == '1':
-            auto_box(self.sm.robot)
-
-        # if key == '2':
-        #     SimpleAvoid(self.sm.robot)
-
-        # if key == '3':
-        #     BetterAvoid(self.sm.robot)
 
     def execCommand(self):
         self.sm.execCommand()
