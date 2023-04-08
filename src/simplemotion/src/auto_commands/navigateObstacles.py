@@ -139,19 +139,15 @@ class BetterAvoid:
         fleftClosest = min(i for i in msg.ranges[fleft:left] if i > self.ignore)
         frontClosest = min(i for i in msg.ranges[0:fleft] + msg.ranges[fright:] if i > self.ignore)
         frightClosest = min(i for i in msg.ranges[right:fright] if i > self.ignore)
-        #backClosest = min(i for i in msg.ranges[left:right] if i > self.ignore)
+        backClosest = min(i for i in msg.ranges[left:right] if i > self.ignore)
 
         # Here we want to backup and move away from obstacles when they get too close
         regions = {
-        'fleft_backup': fleftClosest < self.distance,
-        'front_backup':  frontClosest < self.distance,
-        'fright_backup':  frightClosest < self.distance,
-        #'back_gofront': backClosest < self.distance + 0.15,
-
+        'backup': fleftClosest < self.distance or frontClosest < self.distance or frightClosest < self.distance,
+        'gofront': backClosest < self.distance + 0.15,
         'fleft': fleftClosest < 2*self.distance,
         'front':  frontClosest < 2*self.distance,
         'fright':  frightClosest < 2*self.distance
-        #'back': backClosest < 2*self.distance
         }
 
         self.takeBetterAction(regions)
@@ -163,60 +159,75 @@ class BetterAvoid:
         # Keep track of a previous state so we do not deadlock between 2 actions forever
         # Stretch can detect an obstacle in fright, turn left to avoid, and detect in front, turn right to avoid, and continue doing this forever
         # Based on the previous state, actions will change
+        # Left is positive, right is negative
+
         xm = 0
         xr = 0
         tempState = self.currentState
 
-        if regions['front'] and not regions['fright'] and not regions['fleft']:
+        # Single region detected by a normal size object
+        if regions['front'] and not regions['fright'] and not regions['fleft']: # Obstacle only in the front
             tempState = 'front'
 
+            # Need to consider both sides 
             if self.previousState == 'fright':
-                xr = -self.rotBy
-            elif self.previousState == 'fleft':
                 xr = self.rotBy
-            else:
+            elif self.previousState == 'fleft':
                 xr = -self.rotBy
-        elif regions['fright'] and not regions['front'] and not regions['fleft']:
+            else:
+                xr = -self.rotBy # default action is to turn right
+        elif regions['fright'] and not regions['front'] and not regions['fleft']: # Obstacle only on fright
             tempState = 'fright'
 
+            # Only need to consider if something was in front since you turn left anyways
             if self.previousState == 'front':
                 xr = -self.rotBy
             else:
                 xr = self.rotBy
-        elif regions['fleft'] and not regions['front'] and not regions['fright']:
+        elif regions['fleft'] and not regions['front'] and not regions['fright']: # Obstacle only on fleft
             tempState = 'fleft'
 
+            # Only need to consider if something was in front since you turn right anyways
             if self.previousState == 'front':
                 xr = self.rotBy
             else:
                 xr = -self.rotBy
 
-        # Get these to work with previous state, if possible
-        elif regions['front'] and regions['fright'] and not regions['fleft']:
+        # Multiple regions detected because of large object
+        elif regions['front'] and regions['fright'] and not regions['fleft']: # Obstacle only on front and fright
             tempState = 'front and fright'
-            xr = self.rotBy
-        elif regions['front'] and regions['fleft'] and not regions['fright']:
+
+            if self.previousState == 'fleft' or self.previousState == 'front and fleft':
+                xr = -self.rotBy
+            else:
+                xr = self.rotBy
+        elif regions['front'] and regions['fleft'] and not regions['fright']: # Obstacle only on front and fleft
             tempState = 'front and fleft'
-            xr = -self.rotBy
-        elif regions['fleft'] and regions['fright'] and not regions['front']:
+
+            if self.previousState == 'fright' or self.previousState == 'front and fright':
+                xr = -self.rotBy
+            else:
+                xr = self.rotBy
+        elif regions['fleft'] and regions['fright'] and not regions['front']: # Obstacle only on fright and fleft
             tempState = 'fleft and fright'
             xm = self.moveBy
-        elif regions['front'] and regions['fleft'] and regions['fright']:
+        elif regions['front'] and regions['fleft'] and regions['fright']: # Obstacle all over the front sections
             tempState = 'all'
-        # elif regions['fright_backup'] or regions['fleft_backup'] or regions['front_backup']:
-        #     tempState = 'backup'
+        elif regions['backup']: # Too close, backup
+            tempState = 'backup'
 
-        #     if self.previousState == 'gofront':
-        #         xr = -1.57
-        #     else:
-        #         xm = -self.moveBy
-        # elif regions['back_gofront']:
-        #     tempState = 'gofront'
+            # Only previous that matters if is something is behind you too
+            if self.previousState == 'gofront':
+                xr = -1.57
+            else:
+                xm = -self.moveBy
+        elif regions['gofront']:
+            tempState = 'gofront'
 
-        #     if self.previousState == 'backup':
-        #         xr = -1.57
-        #     else:
-        #         xm = self.moveBy
+            if self.previousState == 'backup':
+                xr = -1.57
+            else:
+                xm = self.moveBy
         else:
             tempState = 'nothing'
             xm = self.moveBy
