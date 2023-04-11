@@ -1,6 +1,6 @@
 # Author: Arjun Viswanathan
 # Date created: 3/9/23
-# Last modified date: 4/6/23
+# Last modified date: 4/11/23
 # Summary: Navigate around obstacles in front of stretch using LiDAR in autonomous mode
 # SimpleAvoid: performs avoidance while continuously going forward
 # BetterAvoid: performs avoidance and considers previous states to navigate better
@@ -8,8 +8,7 @@
 # How to run the file:
 # rosrun simplemotion navigateObstacles.py --algotype=<SPECIFY TYPE>
 
-# TODO: rewrite takeBetterAction
-# TODO: test better avoid
+# TODO: Sometimes obstacles are too close but Stretch does not backup. Might be LiDAR range leaving it out
 
 # Import system packages
 import math
@@ -131,23 +130,25 @@ class BetterAvoid:
     def computeBetterRegions(self, msg):
         # min_angle = -pi, max_angle = pi, and they both point in front of stretch, where x axis is
         # calculate a difference from min_angle using unit circle, and then use that to get range index
-        fleft = int((math.pi/4) / msg.angle_increment)
-        left = int((math.pi/2) / msg.angle_increment)
-        fright = int((7*math.pi/4) / msg.angle_increment)
-        right = int((3*math.pi/2) / msg.angle_increment)
+        fleft = int((math.pi/6) / msg.angle_increment)
+        left = int((math.pi/3) / msg.angle_increment)
+        fright = int((11*math.pi/6) / msg.angle_increment)
+        right = int((5*math.pi/3) / msg.angle_increment)
+        b1 = int((5*math.pi/6) / msg.angle_increment)
+        b2 = int((7*math.pi/6) / msg.angle_increment)
 
         fleftClosest = min(i for i in msg.ranges[fleft:left] if i > self.ignore)
         frontClosest = min(i for i in msg.ranges[0:fleft] + msg.ranges[fright:] if i > self.ignore)
         frightClosest = min(i for i in msg.ranges[right:fright] if i > self.ignore)
-        backClosest = min(i for i in msg.ranges[left:right] if i > self.ignore)
+        backClosest = min(i for i in msg.ranges[b1:b2] if i > self.ignore)
 
         # Here we want to backup and move away from obstacles when they get too close
         regions = {
         'backup': fleftClosest < self.distance or frontClosest < self.distance or frightClosest < self.distance,
         'gofront': backClosest < self.distance + 0.15,
-        'fleft': fleftClosest < 2*self.distance,
+        'fleft': fleftClosest < 1.25*self.distance,
         'front':  frontClosest < 2*self.distance,
-        'fright':  frightClosest < 2*self.distance
+        'fright':  frightClosest < 1.25*self.distance
         }
 
         self.takeBetterAction(regions)
@@ -164,32 +165,40 @@ class BetterAvoid:
         xm = 0
         xr = 0
         tempState = self.currentState
+        oldDelay = 0.1
+        newDelay = 0.2
+
+        delay = oldDelay # updates delay based on action calculated to allow sufficient time 
 
         # Single region detected by a normal size object
         if regions['front'] and not regions['fright'] and not regions['fleft']: # Obstacle only in the front
             tempState = 'front'
 
             # Need to consider both sides 
-            if self.previousState == 'fright':
-                xr = self.rotBy
-            elif self.previousState == 'fleft':
-                xr = -self.rotBy
+            if self.previousState == 'fright' or self.previousState == 'front and fright':
+                xr = self.rotBy * 2
+                delay = newDelay
+            elif self.previousState == 'fleft' or self.previousState == 'front and fleft':
+                xr = -self.rotBy * 2
+                delay = newDelay
             else:
                 xr = -self.rotBy # default action is to turn right
         elif regions['fright'] and not regions['front'] and not regions['fleft']: # Obstacle only on fright
             tempState = 'fright'
 
             # Only need to consider if something was in front since you turn left anyways
-            if self.previousState == 'front':
-                xr = -self.rotBy
+            if self.previousState == 'front' or self.previousState == 'front and fleft':
+                xr = -self.rotBy * 2
+                delay = newDelay
             else:
                 xr = self.rotBy
         elif regions['fleft'] and not regions['front'] and not regions['fright']: # Obstacle only on fleft
             tempState = 'fleft'
 
             # Only need to consider if something was in front since you turn right anyways
-            if self.previousState == 'front':
-                xr = self.rotBy
+            if self.previousState == 'front' or self.previousState == 'front and fright':
+                xr = self.rotBy * 2
+                delay = newDelay
             else:
                 xr = -self.rotBy
 
@@ -197,40 +206,42 @@ class BetterAvoid:
         elif regions['front'] and regions['fright'] and not regions['fleft']: # Obstacle only on front and fright
             tempState = 'front and fright'
 
-            if self.previousState == 'fleft' or self.previousState == 'front and fleft':
-                xr = -self.rotBy
+            if self.previousState == 'fleft' or self.previousState == 'front and fleft' or self.previousState == 'front':
+                xr = -self.rotBy * 2
+                delay = newDelay
             else:
                 xr = self.rotBy
         elif regions['front'] and regions['fleft'] and not regions['fright']: # Obstacle only on front and fleft
             tempState = 'front and fleft'
 
-            if self.previousState == 'fright' or self.previousState == 'front and fright':
-                xr = -self.rotBy
+            if self.previousState == 'fright' or self.previousState == 'front and fright' or self.previousState == 'front':
+                xr = self.rotBy * 2
+                delay = newDelay
             else:
-                xr = self.rotBy
+                xr = -self.rotBy
         elif regions['fleft'] and regions['fright'] and not regions['front']: # Obstacle only on fright and fleft
             tempState = 'fleft and fright'
             xm = self.moveBy
         elif regions['front'] and regions['fleft'] and regions['fright']: # Obstacle all over the front sections
             tempState = 'all'
-        elif regions['backup']: # Too close, backup
-            tempState = 'backup'
-
-            # Only previous that matters if is something is behind you too
-            if self.previousState == 'gofront':
-                xr = -1.57
-            else:
-                xm = -self.moveBy
+            xm = -self.moveBy
         elif regions['gofront']:
             tempState = 'gofront'
 
             if self.previousState == 'backup':
                 xr = -1.57
+                delay = newDelay
             else:
                 xm = self.moveBy
         else:
             tempState = 'nothing'
             xm = self.moveBy
+
+        # Too close, backup. Evaluate as a separate case
+        if regions['backup']: 
+            tempState = 'backup'
+            xm = -self.moveBy
+            xr = 0
 
         # If state did not change, we do not update previous state. Or else both can become the same and we lose our previous information
         if tempState == self.currentState:
@@ -248,7 +259,7 @@ class BetterAvoid:
             self.rotate_base(xr)
             self.robot.push_command()
             
-        time.sleep(0.1)
+        time.sleep(delay)
 
     def move_base(self, x, wait=False):
         # Use distance
