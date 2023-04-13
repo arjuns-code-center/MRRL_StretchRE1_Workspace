@@ -162,6 +162,7 @@ catkin_install_python(PROGRAMS
   src/keyboard_control.py
   src/auto_commands/box.py
   src/auto_commands/navigateObstacles.py
+  src/auto_commands/followObject.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
