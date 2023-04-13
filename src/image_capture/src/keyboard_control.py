@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 # Author: Arjun Viswanathan
-# Date created: 2/16/23
-# Last modified date: 3/9/23
-# Summary: Main script to move stretch with keyboard input
+# Date created: 4/13/23
+# Last modified date: 4/13/23
+# Summary: Main script to move stretch with keyboard input along with image capture
 
 import sys, tty, termios
 import time
 import stretch_body.robot as sb
 from stretch_body.hello_utils import *
+
+import image_capture
 
 print("========STRETCH Keyboard Controls========")
 print("Use WASD to move the base")
@@ -19,6 +21,7 @@ print("Use K and L to turn the wrist")
 print("Use H and J to move gripper")
 print("Use F and G to control wrist pitch")
 print("Use V and B to control wrist roll")
+print("Use 1 to capture image")
 print("Use T to stop robot")
 
 class Stretch_Move:
@@ -192,6 +195,9 @@ class Keys:
             self.sm.move_gripper(90)
         elif key == 'j' or key == 'J':
             self.sm.move_gripper(-90)
+
+        if key == '1':
+            retVal = image_capture()
 
         if key == 't' or key == 'T':
             print("Stopping robot")

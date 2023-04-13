@@ -1,14 +1,12 @@
 # Author: Arjun Viswanathan
 # Date created: 3/9/23
-# Last modified date: 4/11/23
+# Last modified date: 4/13/23
 # Summary: Navigate around obstacles in front of stretch using LiDAR in autonomous mode
 # SimpleAvoid: performs avoidance while continuously going forward
 # BetterAvoid: performs avoidance and considers previous states to navigate better
 
 # How to run the file:
 # rosrun simplemotion navigateObstacles.py --algotype=<SPECIFY TYPE>
-
-# TODO: Sometimes obstacles are too close but Stretch does not backup. Might be LiDAR range leaving it out
 
 # Import system packages
 import math
