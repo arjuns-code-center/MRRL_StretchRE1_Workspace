@@ -10,7 +10,9 @@ import sys, tty, termios
 import time
 import stretch_body.robot as sb
 from stretch_body.hello_utils import *
-from auto_commands import followObject
+
+sys.path.insert(0, '~/motion_ws/src/simplemotion/src/auto_commands')
+from auto_commands import followObjects, avoidObstacles
 
 print("========STRETCH Keyboard Controls========")
 print("Use WASD to move the base")
@@ -22,7 +24,8 @@ print("Use K and L to turn the wrist")
 print("Use H and J to move gripper")
 print("Use F and G to control wrist pitch")
 print("Use V and B to control wrist roll")
-print("Use 1 to trigger followObject command. 0 to exit")
+print("Use 1 to trigger avoidObstacles command. 0 to exit")
+print("Use 2 to trigger followObjects command. 0 to exit")
 print("Use T to stop robot")
 
 class Stretch_Move:
@@ -157,15 +160,15 @@ class Keys:
 
         # Arm extend/retract
         if key == 'q' or key == 'Q':
-            self.sm.move_arm_incremental(0.02)
+            self.sm.move_arm_incremental(0.03)
         elif key == 'e' or key == 'E':
-            self.sm.move_arm_incremental(-0.02)
+            self.sm.move_arm_incremental(-0.03)
 
         # Lift up/down
         if key == 'z' or key == 'Z':
-            self.sm.move_lift_incremental(0.02)
+            self.sm.move_lift_incremental(0.03)
         elif key == 'c' or key == 'C':
-            self.sm.move_lift_incremental(-0.02)
+            self.sm.move_lift_incremental(-0.03)
 
         if key == 'k' or key == 'K':
             self.sm.controlEOA('wrist_yaw', 5)
@@ -198,7 +201,10 @@ class Keys:
             self.sm.move_gripper(-90)
 
         if key == '1':
-            followObject()
+            avoidObstacles.BetterAvoid()
+
+        if key == '2':
+            followObjects.FollowObject()
 
         if key == 't' or key == 'T':
             print("Stopping robot")

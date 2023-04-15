@@ -1,17 +1,19 @@
 # Author: Arjun Viswanathan
 # Date created: 3/9/23
-# Last modified date: 4/13/23
+# Last modified date: 4/15/23
 # Summary: Navigate around obstacles in front of stretch using LiDAR in autonomous mode
 # SimpleAvoid: performs avoidance while continuously going forward
 # BetterAvoid: performs avoidance and considers previous states to navigate better
 
-# How to run the file:
-# rosrun simplemotion navigateObstacles.py --algotype=<SPECIFY TYPE>
+# How to run the file from command line:
+# rosrun simplemotion avoidObstacles.py --algotype=<SPECIFY TYPE>
+# For integration with keyboard_teleop, it will default to BetterAvoid
 
 # Import system packages
 import math
 import time
 import argparse
+import sys, tty, termios
 
 # Import ROS specific packages
 import rospy
@@ -20,6 +22,9 @@ import stretch_body.robot as sb
 
 class SimpleAvoid:
     def __init__(self):
+        start_time = time.ctime()
+        print("{}: Starting Navigation Algorithm...".format(start_time))
+
         self.robot = sb.Robot()
         self.robot.startup()
 
@@ -36,7 +41,24 @@ class SimpleAvoid:
         self.sub = rospy.Subscriber('/scan', LaserScan, self.computeRegions)
         rospy.spin()
 
+    def getkeystroke(self):
+        fd=sys.stdin.fileno()
+        old_settings=termios.tcgetattr(fd)
+
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch=sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd,termios.TCSADRAIN,old_settings)
+
+        return ch
+
     def computeRegions(self, msg):
+        key = self.getkeystroke()
+        if key == '0':
+            print("Signaling shutdown...")
+            rospy.signal_shutdown("Key 0 was pressed to return command to teleop mode")
+
         # min_angle = -pi, max_angle = pi, and they both point in front of stretch, where x axis is
         # calculate a difference from min_angle using unit circle, and then use that to get range index
         fleft = int((math.pi/4) / msg.angle_increment)
@@ -103,6 +125,9 @@ class SimpleAvoid:
 
 class BetterAvoid:
     def __init__(self):
+        start_time = time.ctime()
+        print("{}: Starting Navigation Algorithm...".format(start_time))
+
         self.robot = sb.Robot()
         self.robot.startup()
 
@@ -125,7 +150,24 @@ class BetterAvoid:
         self.sub = rospy.Subscriber('/scan', LaserScan, self.computeBetterRegions)
         rospy.spin()
 
+    def getkeystroke(self):
+        fd=sys.stdin.fileno()
+        old_settings=termios.tcgetattr(fd)
+
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch=sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd,termios.TCSADRAIN,old_settings)
+
+        return ch
+
     def computeBetterRegions(self, msg):
+        key = self.getkeystroke()
+        if key == '0':
+            print("Signaling shutdown...")
+            rospy.signal_shutdown("Key 0 was pressed to return command to teleop mode")
+
         # min_angle = -pi, max_angle = pi, and they both point in front of stretch, where x axis is
         # calculate a difference from min_angle using unit circle, and then use that to get range index
         fleft = int((math.pi/6) / msg.angle_increment)
@@ -274,11 +316,8 @@ class BetterAvoid:
             self.base.wait_until_at_setpoint(self.timeout)
 
 if __name__ == "__main__":
-    start_time = time.ctime()
-    print("{}: Starting Navigation Algorithm...".format(start_time))
-
     args = argparse.ArgumentParser()
-    args.add_argument('--algotype', default='simple', type=str, help='what avoidance algorithm to run')
+    args.add_argument('--algotype', default='better', type=str, help='what avoidance algorithm to run')
     args = args.parse_args()
     algorithmType = args.algotype
 

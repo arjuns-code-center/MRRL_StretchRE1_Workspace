@@ -1,7 +1,11 @@
 # Author: Arjun Viswanathan
 # Date created: 4/13/23
-# Last modified date: 4/13/23
-# Description: follows a single object in front of it using only the LiDAR
+# Last modified date: 4/15/23
+# Summary: follows a single object in front of it using only the LiDAR and intelligent decision making
+
+# How to run from command line:
+# rosrun simplemotion followObjects.py
+# For integration with keyboard_teleop, nothing to be done
 
 # Import system packages
 import math
@@ -15,6 +19,9 @@ import stretch_body.robot as sb
 
 class FollowObject:
     def __init__(self):
+        start_time = time.ctime()
+        print("{}: Starting Follow Object Algorithm...".format(start_time))
+
         self.robot = sb.Robot()
         self.robot.startup()
 
@@ -162,6 +169,4 @@ class FollowObject:
             self.base.wait_until_at_setpoint(self.timeout)
 
 if __name__ == "__main__":
-    start_time = time.ctime()
-    print("{}: Starting Follow Object Algorithm...".format(start_time))
     FollowObject()
