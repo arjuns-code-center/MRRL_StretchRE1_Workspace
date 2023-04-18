@@ -1,6 +1,6 @@
 # Author: Arjun Viswanathan
 # Date created: 4/13/23
-# Last modified date: 4/15/23
+# Last modified date: 4/18/23
 # Summary: follows a single object in front of it using only the LiDAR and intelligent decision making
 
 # How to run from command line:
@@ -76,9 +76,9 @@ class FollowObject:
         # Here we want to backup and move away from obstacles when they get too close
         regions = {
         'stop': frontClosest < self.distance,
-        'fleft': fleftClosest < 1.25*self.distance,
-        'front':  frontClosest < 2*self.distance,
-        'fright':  frightClosest < 1.25*self.distance
+        'fleft': fleftClosest < 1.25*self.distance and fleftClosest > self.distance,
+        'front':  frontClosest < 2*self.distance and frontClosest > self.distance,
+        'fright':  frightClosest < 1.25*self.distance and frightClosest > self.distance
         }
 
         self.takeAction(regions)

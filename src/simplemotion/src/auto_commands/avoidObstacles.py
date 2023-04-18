@@ -1,6 +1,6 @@
 # Author: Arjun Viswanathan
 # Date created: 3/9/23
-# Last modified date: 4/15/23
+# Last modified date: 4/18/23
 # Summary: Navigate around obstacles in front of stretch using LiDAR in autonomous mode
 # SimpleAvoid: performs avoidance while continuously going forward
 # BetterAvoid: performs avoidance and considers previous states to navigate better
@@ -184,11 +184,11 @@ class BetterAvoid:
 
         # Here we want to backup and move away from obstacles when they get too close
         regions = {
-        'backup': fleftClosest < self.distance or frontClosest < self.distance or frightClosest < self.distance,
-        'gofront': backClosest < self.distance + 0.15,
-        'fleft': fleftClosest < 1.25*self.distance,
-        'front':  frontClosest < 2*self.distance,
-        'fright':  frightClosest < 1.25*self.distance
+        'backup': fleftClosest <= self.distance or frontClosest <= self.distance or frightClosest <= self.distance,
+        'gofront': backClosest <= self.distance + 0.15,
+        'fleft': fleftClosest < 1.25*self.distance and fleftClosest > self.distance,
+        'front':  frontClosest < 2*self.distance and frontClosest > self.distance,
+        'fright':  frightClosest < 1.25*self.distance and frightClosest > self.distance
         }
 
         self.takeBetterAction(regions)
