@@ -1,6 +1,6 @@
 # Author: Arjun Viswanathan
 # Date created: 4/13/23
-# Last modified date: 4/18/23
+# Last modified date: 4/20/23
 # Summary: follows a single object in front of it using only the LiDAR and intelligent decision making
 
 # How to run from command line:
@@ -10,7 +10,6 @@
 # Import system packages
 import math
 import time
-import sys, termios, tty
 
 # Import ROS specific packages
 import rospy
@@ -44,30 +43,13 @@ class FollowObject:
         self.sub = rospy.Subscriber('/scan', LaserScan, self.computeRegions)
         rospy.spin()
 
-    def getkeystroke(self):
-        fd=sys.stdin.fileno()
-        old_settings=termios.tcgetattr(fd)
-
-        try:
-            tty.setraw(sys.stdin.fileno())
-            ch=sys.stdin.read(1)
-        finally:
-            termios.tcsetattr(fd,termios.TCSADRAIN,old_settings)
-
-        return ch
-
-    def computeRegions(self, msg):
-        key = self.getkeystroke()
-        if key == '0':
-            print("Signaling shutdown...")
-            rospy.signal_shutdown("Key 0 was pressed to return command to teleop mode")
-        
+    def computeRegions(self, msg):        
         # min_angle = -pi, max_angle = pi, and they both point in front of stretch, where x axis is
         # calculate a difference from min_angle using unit circle, and then use that to get range index
         fleft = int((math.pi/6) / msg.angle_increment)
-        left = int((math.pi/3) / msg.angle_increment)
+        left = int((math.pi/2) / msg.angle_increment)
         fright = int((11*math.pi/6) / msg.angle_increment)
-        right = int((5*math.pi/3) / msg.angle_increment)
+        right = int((3*math.pi/2) / msg.angle_increment)
 
         fleftClosest = min(i for i in msg.ranges[fleft:left] if i > self.ignore)
         frontClosest = min(i for i in msg.ranges[0:fleft] + msg.ranges[fright:] if i > self.ignore)
@@ -75,10 +57,11 @@ class FollowObject:
 
         # Here we want to backup and move away from obstacles when they get too close
         regions = {
-        'stop': frontClosest < self.distance,
-        'fleft': fleftClosest < 1.25*self.distance and fleftClosest > self.distance,
-        'front':  frontClosest < 2*self.distance and frontClosest > self.distance,
-        'fright':  frightClosest < 1.25*self.distance and frightClosest > self.distance
+        'stop': frontClosest <= 2*self.distance and frontClosest > self.distance,
+        'fleft': fleftClosest < 3*self.distance and fleftClosest > 2*self.distance,
+        'front':  frontClosest < 3*self.distance and frontClosest > 2*self.distance,
+        'fright':  frightClosest < 3*self.distance and frightClosest > 2*self.distance,
+        'backup': fleftClosest <= self.distance or frontClosest <= self.distance or frightClosest <= self.distance
         }
 
         self.takeAction(regions)
@@ -132,7 +115,14 @@ class FollowObject:
                 xm = -self.moveBy
 
         # Too close, backup. Evaluate as a separate case
+        if regions['backup']: 
+            tempState = 'backup'
+            xm = -self.moveBy
+            xr = 0
+
+        # Too close, backup. Evaluate as a separate case
         if regions['stop']: 
+            tempState = 'stop'
             xm = 0
             xr = 0
 

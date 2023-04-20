@@ -4,15 +4,16 @@
 # Last modified date: 4/13/23
 # Summary: Main script to move stretch with keyboard input
 
-# TODO: fix import error for followObject. Currently says auto_commands is not found
+# TODO: cannot start auto_commands while teleop is running. Try to figure out process start/stop using launch file
 
 import sys, tty, termios
 import time
 import stretch_body.robot as sb
 from stretch_body.hello_utils import *
 
-sys.path.insert(0, '~/motion_ws/src/simplemotion/src/auto_commands')
-from auto_commands import followObjects, avoidObstacles
+sys.path.insert(0, '/home/arjun/motion_ws/src/simplemotion/src/auto_commands')
+from followObjects import FollowObject as fO
+from avoidObstacles import BetterAvoid as aO
 
 print("========STRETCH Keyboard Controls========")
 print("Use WASD to move the base")
@@ -201,10 +202,10 @@ class Keys:
             self.sm.move_gripper(-90)
 
         if key == '1':
-            avoidObstacles.BetterAvoid()
+            aO()
 
         if key == '2':
-            followObjects.FollowObject()
+            fO()
 
         if key == 't' or key == 'T':
             print("Stopping robot")
