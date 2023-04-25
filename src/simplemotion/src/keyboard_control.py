@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Author: Arjun Viswanathan
 # Date created: 2/16/23
-# Last modified date: 4/13/23
+# Last modified date: 4/25/23
 # Summary: Main script to move stretch with keyboard input
 
 # TODO: cannot start auto_commands while teleop is running. Try to figure out process start/stop using launch file
@@ -10,6 +10,7 @@ import sys, tty, termios
 import time
 import stretch_body.robot as sb
 from stretch_body.hello_utils import *
+import rospy
 
 sys.path.insert(0, '/home/arjun/motion_ws/src/simplemotion/src/auto_commands')
 from followObjects import FollowObject as fO
@@ -129,7 +130,6 @@ class Stretch_Move:
 
 class Keys:
     def __init__(self):
-        self.quit = 0
         self.sm = Stretch_Move()
     
     def getkeystroke(self):
@@ -208,19 +208,17 @@ class Keys:
             fO()
 
         if key == 't' or key == 'T':
-            print("Stopping robot")
             self.sm.robot_stop()
-            self.quit = 1
+            rospy.signal_shutdown("Stopping robot")
 
     def execCommand(self):
         self.sm.execCommand()
 
-    def isStopped(self):
-        return self.quit
+if __name__ == "__main__":
+    rospy.init_node('keyboard_teleop')
+    kb = Keys()
 
-kb = Keys()
-
-while not kb.isStopped():
-    kb.queueActions()
-    kb.execCommand()
-    time.sleep(0.1)
+    while not rospy.is_shutdown():
+        kb.queueActions()
+        kb.execCommand()
+        time.sleep(0.1)

@@ -1,0 +1,9 @@
+<!--
+    Author: Arjun Viswanathan
+    Date created: 4/25/23
+    Description: Launch file to launch keyboard teleop code
+-->
+
+<launch>
+    <node name="keyboard_teleop", pkg="simplemotion", type="keyboard_control.py", output="screen"/>
+</launch>
