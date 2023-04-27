@@ -5,5 +5,5 @@
 -->
 
 <launch>
-    <node name="keyboard_teleop", pkg="simplemotion", type="keyboard_control.py", output="screen"/>
+    <node name="teleop_keyboard" pkg="simplemotion" type="keyboard_control.py" output="screen"/>
 </launch>

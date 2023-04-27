@@ -1,6 +1,6 @@
 # Author: Arjun Viswanathan
 # Date created: 3/9/23
-# Last modified date: 4/20/23
+# Last modified date: 4/27/23
 # Summary: Navigate around obstacles in front of stretch using LiDAR in autonomous mode
 # SimpleAvoid: performs avoidance while continuously going forward
 # BetterAvoid: performs avoidance and considers previous states to navigate better
@@ -20,13 +20,11 @@ from sensor_msgs.msg import LaserScan
 import stretch_body.robot as sb
 
 class SimpleAvoid:
-    def __init__(self):
-        start_time = time.ctime()
-        print("{}: Starting Navigation Algorithm...".format(start_time))
+    def __init__(self, robot):
+        self.start_time = time.time()
+        print("Starting Simple Navigation Algorithm...")
 
-        self.robot = sb.Robot()
-        self.robot.startup()
-
+        self.robot = robot
         self.base = self.robot.base
 
         self.v = 10.0 #self.base.params['motion']['max']['vel_m']
@@ -36,11 +34,15 @@ class SimpleAvoid:
         self.distance = 1.0
         self.ignore = 0.25
 
-        rospy.init_node('laser_scan')
+        rospy.init_node('simple_avoid')
         self.sub = rospy.Subscriber('/scan', LaserScan, self.computeRegions)
         rospy.spin()
 
     def computeRegions(self, msg):
+        if (time.time() - self.start_time) > 30:
+            self.robot.stop()
+            rospy.signal_shutdown("Ending autonomous mode...")
+
         # min_angle = -pi, max_angle = pi, and they both point in front of stretch, where x axis is
         # calculate a difference from min_angle using unit circle, and then use that to get range index
         fleft = int((math.pi/4) / msg.angle_increment)
@@ -106,13 +108,11 @@ class SimpleAvoid:
             self.base.wait_until_at_setpoint(self.timeout)
 
 class BetterAvoid:
-    def __init__(self):
-        start_time = time.ctime()
-        print("{}: Starting Navigation Algorithm...".format(start_time))
+    def __init__(self, robot):
+        self.start_time = time.time()
+        print("Starting Better Navigation Algorithm...")
 
-        self.robot = sb.Robot()
-        self.robot.startup()
-
+        self.robot = robot
         self.base = self.robot.base
 
         self.moveBy = 0.15
@@ -128,11 +128,15 @@ class BetterAvoid:
         self.previousState = None
         self.currentStateChanged = True
 
-        rospy.init_node('laser_scan')
+        rospy.init_node('better_avoid')
         self.sub = rospy.Subscriber('/scan', LaserScan, self.computeBetterRegions)
         rospy.spin()
 
     def computeBetterRegions(self, msg):
+        if (time.time() - self.start_time) > 30:
+            self.robot.stop()
+            rospy.signal_shutdown("Ending autonomous mode...")
+
         # min_angle = -pi, max_angle = pi, and they both point in front of stretch, where x axis is
         # calculate a difference from min_angle using unit circle, and then use that to get range index
         fleft = int((math.pi/6) / msg.angle_increment)
@@ -286,9 +290,12 @@ if __name__ == "__main__":
     args = args.parse_args()
     algorithmType = args.algotype
 
+    r = sb.Robot()
+    r.startup()
+
     if algorithmType == 'simple':
         print("Using SimpleAvoid algorithm to navigate obstacles")
-        SimpleAvoid()
+        SimpleAvoid(r)
     elif algorithmType == 'better':
         print("Using BetterAvoid algorithm to navigate obstacles")
-        BetterAvoid()
+        BetterAvoid(r)

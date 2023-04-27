@@ -19,14 +19,14 @@
     />
 
     <group if=="$(arg avoidObstacles)">
-        <node name="avoid_obstacles", pkg="simplemotion", type="avoidObstacles.py", output="screen"/>
+        <node name="avoid_obstacles", pkg="simplemotion", type="avoidObstacles.py", output="screen" respawn="true"/>
     </group>
 
     <group if=="$(arg box)">
-        <node name="box", pkg="simplemotion", type="box.py", output="screen"/>
+        <node name="box", pkg="simplemotion", type="box.py", output="screen" respawn="true"/>
     </group>
 
     <group if=="$(arg followObjects)">
-        <node name="follow_objects", pkg="simplemotion", type="followObjects.py", output="screen"/>
+        <node name="follow_objects", pkg="simplemotion", type="followObjects.py", output="screen" respawn="true"/>
     </group>
 </launch>
