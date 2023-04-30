@@ -5,5 +5,5 @@
 -->
 
 <launch>
-    <node name="teleop_keyboard" pkg="simplemotion" type="keyboard_control.py" output="screen" respawn="true" respawn_delay="2.0"/>
+    <node name="teleop_keyboard" pkg="simplemotion" type="keyboard_control.py" output="screen" respawn="true" respawn_delay="30.0"/>
 </launch>

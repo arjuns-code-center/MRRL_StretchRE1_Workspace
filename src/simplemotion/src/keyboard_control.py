@@ -131,6 +131,7 @@ class Stretch_Move:
 class Keys:
     def __init__(self):
         self.sm = Stretch_Move()
+        self.keyPressed = None
     
     def getkeystroke(self):
         fd=sys.stdin.fileno()
@@ -146,6 +147,7 @@ class Keys:
 
     def queueActions(self):
         key = self.getkeystroke()
+        self.keyPressed = key
 
         # Moving forward/backward
         if key == 'w' or key == 'W':
@@ -201,26 +203,27 @@ class Keys:
         elif key == 'j' or key == 'J':
             self.sm.move_gripper(-90)
 
-        if key == '1':
-            #self.sm.robot_stop()
-            aO(self.sm.robot)
-            rospy.signal_shutdown("Restarting robot")
-
-        if key == '2':
-            #self.sm.robot_stop()
-            fO(self.sm.robot)
+        if key == '1' or key == '2':
             rospy.signal_shutdown("Restarting robot")
 
         if key == 't' or key == 'T':
             self.sm.robot_stop()
             rospy.signal_shutdown("Stopping robot")
 
+    def shutdownHandler(self):
+        if self.keyPressed == '1':
+            aO(self.sm.robot)
+
+        if self.keyPressed == '2':
+            fO(self.sm.robot)
+
     def execCommand(self):
         self.sm.execCommand()
 
 if __name__ == "__main__":
-    rospy.init_node('telop_keyboard', anonymous=True)
+    rospy.init_node('telop_keyboard')
     kb = Keys()
+    rospy.on_shutdown(kb.shutdownHandler())
 
     while not rospy.is_shutdown():
         kb.queueActions()
