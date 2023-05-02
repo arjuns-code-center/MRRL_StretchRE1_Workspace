@@ -1,12 +1,12 @@
 # Author: Arjun Viswanathan
 # Date created: 3/9/23
-# Last modified date: 4/27/23
+# Last modified date: 5/1/23
 # Summary: Navigate around obstacles in front of stretch using LiDAR in autonomous mode
 # SimpleAvoid: performs avoidance while continuously going forward
 # BetterAvoid: performs avoidance and considers previous states to navigate better
 
 # How to run the file from command line:
-# rosrun simplemotion avoidObstacles.py --algotype=<SPECIFY TYPE>
+# rosrun simplemotion avoidObstacles.py --algotype=<SPECIFY TYPE> --timer=0
 # For integration with keyboard_teleop, it will default to BetterAvoid
 
 # Import system packages
@@ -20,12 +20,13 @@ from sensor_msgs.msg import LaserScan
 import stretch_body.robot as sb
 
 class SimpleAvoid:
-    def __init__(self, robot):
+    def __init__(self, robot, timer=True):
         self.start_time = time.time()
         print("Starting Simple Navigation Algorithm...")
 
         self.robot = robot
         self.base = self.robot.base
+        self.timer = timer
 
         self.v = 10.0 #self.base.params['motion']['max']['vel_m']
         self.a = 5.0 #self.base.params['motion']['max']['accel_m']
@@ -34,14 +35,14 @@ class SimpleAvoid:
         self.distance = 1.0
         self.ignore = 0.25
 
-        rospy.init_node('simple_avoid')
         self.sub = rospy.Subscriber('/scan', LaserScan, self.computeRegions)
         rospy.spin()
 
     def computeRegions(self, msg):
-        if (time.time() - self.start_time) > 30:
-            self.robot.stop()
-            rospy.signal_shutdown("Ending autonomous mode...")
+        if self.timer:
+            if (time.time() - self.start_time) > 30:
+                self.robot.stop()
+                rospy.signal_shutdown("Ending autonomous mode...")
 
         # min_angle = -pi, max_angle = pi, and they both point in front of stretch, where x axis is
         # calculate a difference from min_angle using unit circle, and then use that to get range index
@@ -108,12 +109,13 @@ class SimpleAvoid:
             self.base.wait_until_at_setpoint(self.timeout)
 
 class BetterAvoid:
-    def __init__(self, robot):
+    def __init__(self, robot, timer=True):
         self.start_time = time.time()
         print("Starting Better Navigation Algorithm...")
 
         self.robot = robot
         self.base = self.robot.base
+        self.timer = timer
 
         self.moveBy = 0.15
         self.rotBy = 0.15
@@ -128,14 +130,14 @@ class BetterAvoid:
         self.previousState = None
         self.currentStateChanged = True
 
-        rospy.init_node('better_avoid')
         self.sub = rospy.Subscriber('/scan', LaserScan, self.computeBetterRegions)
         rospy.spin()
 
     def computeBetterRegions(self, msg):
-        if (time.time() - self.start_time) > 30:
-            self.robot.stop()
-            rospy.signal_shutdown("Ending autonomous mode...")
+        if self.timer:
+            if (time.time() - self.start_time) > 30:
+                self.robot.stop()
+                rospy.signal_shutdown("Ending autonomous mode...")
 
         # min_angle = -pi, max_angle = pi, and they both point in front of stretch, where x axis is
         # calculate a difference from min_angle using unit circle, and then use that to get range index
@@ -287,15 +289,19 @@ class BetterAvoid:
 if __name__ == "__main__":
     args = argparse.ArgumentParser()
     args.add_argument('--algotype', default='better', type=str, help='what avoidance algorithm to run')
-    args = args.parse_args()
+    args.add_argument('--timer', default=False, type=str, help='what avoidance algorithm to run')
+    args, unknown = args.parse_known_args()
     algorithmType = args.algotype
+    timer = int(args.timer)
 
     r = sb.Robot()
     r.startup()
 
+    rospy.init_node('avoid_obstacles')
+
     if algorithmType == 'simple':
         print("Using SimpleAvoid algorithm to navigate obstacles")
-        SimpleAvoid(r)
+        SimpleAvoid(r, timer)
     elif algorithmType == 'better':
         print("Using BetterAvoid algorithm to navigate obstacles")
-        BetterAvoid(r)
+        BetterAvoid(r, timer)

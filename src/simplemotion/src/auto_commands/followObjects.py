@@ -1,15 +1,18 @@
 # Author: Arjun Viswanathan
 # Date created: 4/13/23
-# Last modified date: 4/27/23
+# Last modified date: 5/1/23
 # Summary: follows a single object in front of it using only the LiDAR and intelligent decision making
 
 # How to run from command line:
-# rosrun simplemotion followObjects.py
+# rosrun simplemotion followObjects.py --timer=0
 # For integration with keyboard_teleop, nothing to be done
+
+# TODO: Incorporate computer vision 
 
 # Import system packages
 import math
 import time
+import argparse
 
 # Import ROS specific packages
 import rospy
@@ -17,14 +20,13 @@ from sensor_msgs.msg import LaserScan
 import stretch_body.robot as sb
 
 class FollowObject:
-    def __init__(self):
+    def __init__(self, robot, timer=True):
         self.start_time = time.time()
         print("Starting Follow Object Algorithm...")
 
-        self.robot = sb.Robot()
-        self.robot.startup()
-
+        self.robot = robot
         self.base = self.robot.base
+        self.timer = timer
 
         self.moveBy = 0.15
         self.rotBy = 0.15
@@ -39,14 +41,14 @@ class FollowObject:
         self.previousState = None
         self.currentStateChanged = True
 
-        rospy.init_node('laser_scan')
         self.sub = rospy.Subscriber('/scan', LaserScan, self.computeRegions)
         rospy.spin()
 
-    def computeRegions(self, msg):       
-        if time.time() - self.start_time > 30:
-            self.robot.stop()
-            rospy.signal_shutdown("Ending autonomous mode...") 
+    def computeRegions(self, msg):   
+        if self.timer:    
+            if time.time() - self.start_time > 30:
+                self.robot.stop()
+                rospy.signal_shutdown("Ending autonomous mode...") 
         # min_angle = -pi, max_angle = pi, and they both point in front of stretch, where x axis is
         # calculate a difference from min_angle using unit circle, and then use that to get range index
         fleft = int((math.pi/6) / msg.angle_increment)
@@ -162,4 +164,12 @@ class FollowObject:
             self.base.wait_until_at_setpoint(self.timeout)
 
 if __name__ == "__main__":
-    FollowObject()
+    args = argparse.ArgumentParser()
+    args.add_argument('--timer', default=False, type=str, help='what avoidance algorithm to run')
+    args, unknown = args.parse_known_args()
+    timer = int(args.timer)
+
+    r = sb.Robot()
+    r.startup()
+    rospy.init_node('follow_objects')
+    FollowObject(r, timer)

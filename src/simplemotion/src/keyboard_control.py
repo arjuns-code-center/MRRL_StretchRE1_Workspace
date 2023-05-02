@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # Author: Arjun Viswanathan
 # Date created: 2/16/23
-# Last modified date: 4/27/23
+# Last modified date: 5/1/23
 # Summary: Main script to move stretch with keyboard input
 
-# TODO: cannot start auto_commands while teleop is running. Try to figure out process start/stop using launch file
+# How to run
+# roslaunch simplemotion teleop_keyboard.launch 
+# roslaunch simplemotion teleop_with_auto.launch
 
 import sys, tty, termios
 import time
@@ -26,8 +28,8 @@ print("Use K and L to turn the wrist")
 print("Use H and J to move gripper")
 print("Use F and G to control wrist pitch")
 print("Use V and B to control wrist roll")
-print("Use 1 to trigger avoidObstacles command. 0 to exit")
-print("Use 2 to trigger followObjects command. 0 to exit")
+print("Use 1 to trigger avoidObstacles command")
+print("Use 2 to trigger followObjects command")
 print("Use T to stop robot")
 
 class Stretch_Move:
@@ -35,6 +37,14 @@ class Stretch_Move:
         # Define robot object and start it up
         self.robot = sb.Robot()
         self.robot.startup()
+
+        self.robot.pimu.trigger_beep()
+        self.robot.push_command()
+        time.sleep(0.5)
+
+        self.robot.pimu.trigger_beep()
+        self.robot.push_command()
+        time.sleep(0.5)
 
         # Initialize each part of robot
         self.arm = self.robot.arm
@@ -203,19 +213,15 @@ class Keys:
         elif key == 'j' or key == 'J':
             self.sm.move_gripper(-90)
 
-        if key == '1' or key == '2':
-            rospy.signal_shutdown("Restarting robot")
+        if key == '1':
+            aO(self.sm.robot)
+
+        if key == '2':
+            fO(self.sm.robot)
 
         if key == 't' or key == 'T':
             self.sm.robot_stop()
             rospy.signal_shutdown("Stopping robot")
-
-    def shutdownHandler(self):
-        if self.keyPressed == '1':
-            aO(self.sm.robot)
-
-        if self.keyPressed == '2':
-            fO(self.sm.robot)
 
     def execCommand(self):
         self.sm.execCommand()
@@ -223,7 +229,6 @@ class Keys:
 if __name__ == "__main__":
     rospy.init_node('telop_keyboard')
     kb = Keys()
-    rospy.on_shutdown(kb.shutdownHandler())
 
     while not rospy.is_shutdown():
         kb.queueActions()
