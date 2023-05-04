@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 # Author: Arjun Viswanathan
-# Date created: 4/13/23
-# Last modified date: 4/13/23
-# Summary: Main script to move stretch with keyboard input along with image capture
+# Date created: 2/16/23
+# Last modified date: 5/4/23
+# Summary: Main script to move stretch with keyboard input
+
+# How to run
+# roslaunch simplemotion teleop_keyboard.launch 
 
 import sys, tty, termios
 import time
 import stretch_body.robot as sb
 from stretch_body.hello_utils import *
+import rospy
 
-import image_capture
+sys.path.insert(0, '/home/arjun/motion_ws/src/image_capture/src/commands')
+from capture_image import ImageCapture
 
 print("========STRETCH Keyboard Controls========")
 print("Use WASD to move the base")
@@ -21,7 +26,8 @@ print("Use K and L to turn the wrist")
 print("Use H and J to move gripper")
 print("Use F and G to control wrist pitch")
 print("Use V and B to control wrist roll")
-print("Use 1 to capture image")
+print("Use 1 to trigger avoidObstacles command")
+print("Use 2 to trigger followObjects command")
 print("Use T to stop robot")
 
 class Stretch_Move:
@@ -29,6 +35,14 @@ class Stretch_Move:
         # Define robot object and start it up
         self.robot = sb.Robot()
         self.robot.startup()
+
+        self.robot.pimu.trigger_beep()
+        self.robot.push_command()
+        time.sleep(0.5)
+
+        self.robot.pimu.trigger_beep()
+        self.robot.push_command()
+        time.sleep(0.5)
 
         # Initialize each part of robot
         self.arm = self.robot.arm
@@ -124,7 +138,6 @@ class Stretch_Move:
 
 class Keys:
     def __init__(self):
-        self.quit = 0
         self.sm = Stretch_Move()
     
     def getkeystroke(self):
@@ -156,15 +169,15 @@ class Keys:
 
         # Arm extend/retract
         if key == 'q' or key == 'Q':
-            self.sm.move_arm_incremental(0.02)
+            self.sm.move_arm_incremental(0.03)
         elif key == 'e' or key == 'E':
-            self.sm.move_arm_incremental(-0.02)
+            self.sm.move_arm_incremental(-0.03)
 
         # Lift up/down
         if key == 'z' or key == 'Z':
-            self.sm.move_lift_incremental(0.02)
+            self.sm.move_lift_incremental(0.03)
         elif key == 'c' or key == 'C':
-            self.sm.move_lift_incremental(-0.02)
+            self.sm.move_lift_incremental(-0.03)
 
         if key == 'k' or key == 'K':
             self.sm.controlEOA('wrist_yaw', 5)
@@ -197,22 +210,20 @@ class Keys:
             self.sm.move_gripper(-90)
 
         if key == '1':
-            retVal = image_capture()
+            ImageCapture()
 
         if key == 't' or key == 'T':
-            print("Stopping robot")
             self.sm.robot_stop()
-            self.quit = 1
+            rospy.signal_shutdown("Stopping robot")
 
     def execCommand(self):
         self.sm.execCommand()
 
-    def isStopped(self):
-        return self.quit
+if __name__ == "__main__":
+    rospy.init_node('telop_keyboard')
+    kb = Keys()
 
-kb = Keys()
-
-while not kb.isStopped():
-    kb.queueActions()
-    kb.execCommand()
-    time.sleep(0.1)
+    while not rospy.is_shutdown():
+        kb.queueActions()
+        kb.execCommand()
+        time.sleep(0.1)

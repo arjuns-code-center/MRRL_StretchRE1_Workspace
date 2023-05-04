@@ -160,7 +160,7 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-  src/image_capture.py
+  src/commands/capture_image.py
   src/keyboard_control.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

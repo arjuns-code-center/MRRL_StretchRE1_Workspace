@@ -141,7 +141,6 @@ class Stretch_Move:
 class Keys:
     def __init__(self):
         self.sm = Stretch_Move()
-        self.keyPressed = None
     
     def getkeystroke(self):
         fd=sys.stdin.fileno()
@@ -157,7 +156,6 @@ class Keys:
 
     def queueActions(self):
         key = self.getkeystroke()
-        self.keyPressed = key
 
         # Moving forward/backward
         if key == 'w' or key == 'W':
