@@ -29,12 +29,15 @@ To run teleop with autonomous commands, use the following code in the command li
 The avoidObstacles module has two classes: SimpleAvoid and BetterAvoid. 
 
 SimpleAvoid is a base version of collision avoidance where Stretch processes just what is in front of it, and takes an action accordingly. This opens up a significant flaw where Stretch deadlocks between two states and continuously oscillates between two actions. 
+
 ![image](https://user-images.githubusercontent.com/41523488/236591495-ed4bd8f0-45ec-47f6-a821-bf1defeb25c1.png)
 
 BetterAvoid, however, uses a one-step lookbehind (a previous state) to take its action. This way, it does not deadlock like SimpleAvoid does. 
+
 ![image](https://user-images.githubusercontent.com/41523488/236591506-ef0384e1-d75e-40e2-993e-302c5f7bcc52.png)
 
 The followObjects module will use the same strategy as used in BetterAvoid, but it turns toward you instead of away from you. This way, Stretch will follow you at a distance, and stop when he gets close. If you get too close, then he will back up. A small flaw is that just the LiDAR is not enough to track the actual target. This is where computer vision is required, which is work for the future. 
+
 ![image](https://user-images.githubusercontent.com/41523488/236591513-cc98e019-21b0-4314-9a05-eb595a95dae1.png)
 
 To run the BetterAvoid algorithm, use the following code in the command line
