@@ -22,8 +22,11 @@ There is a base keyboard_teleop.py file that takes inputs from the keyboard and 
 - followObjects.py
 
 To run just the teleoperated commands, use the following code in the command line
+
 ```roslaunch simplemotion teleop_keyboard.launch```
+
 To run teleop with autonomous commands, use the following code in the command line
+
 ```roslaunch simplemotion teleop_with_auto.launch```
 
 The avoidObstacles module has two classes: SimpleAvoid and BetterAvoid. SimpleAvoid is a base version of collision avoidance where Stretch processes just what is in front of it, and takes an action accordingly. This opens up a significant flaw where Stretch deadlocks between two states and continuously oscillates between two actions. BetterAvoid, however, uses a one-step lookbehind (a previous state) to take its action. This way, it does not deadlock like SimpleAvoid does. 
@@ -31,8 +34,14 @@ The avoidObstacles module has two classes: SimpleAvoid and BetterAvoid. SimpleAv
 The followObjects module will use the same strategy as used in BetterAvoid, but it turns toward you instead of away from you. This way, Stretch will follow you at a distance, and stop when he gets close. If you get too close, then he will back up. A small flaw is that just the LiDAR is not enough to track the actual target. This is where computer vision is required, which is work for the future. 
 
 To run the BetterAvoid algorithm, use the following code in the command line
+
 ```roslaunch simplemotion autocommands.launch avoidObstacles:=1 box:=0 followObjects:=0```
+
 To run the Box algorithm, use the following code in the command line
+
 ```roslaunch simplemotion autocommands.launch avoidObtacles:=0 box:=1 followObjects:=0```
+
 To run the FollowObjects algorithm, use the following code in the command line
+
 ```roslaunch simplemotion autocommands.launch avoidObtacles:=0 box:=0 followObjects:=1```
+
