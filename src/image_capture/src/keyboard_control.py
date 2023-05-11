@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Author: Arjun Viswanathan
 # Date created: 2/16/23
-# Last modified date: 5/4/23
+# Last modified date: 5/11/23
 # Summary: Main script to move stretch with keyboard input
 
 # How to run
@@ -13,7 +13,7 @@ import stretch_body.robot as sb
 from stretch_body.hello_utils import *
 import rospy
 
-sys.path.insert(0, '/home/arjun/motion_ws/src/image_capture/src/commands')
+sys.path.insert(0, '/home/arjun/motion_ws/src/image_capture/src/commands/')
 from capture_image import ImageCapture
 
 print("========STRETCH Keyboard Controls========")
@@ -26,8 +26,7 @@ print("Use K and L to turn the wrist")
 print("Use H and J to move gripper")
 print("Use F and G to control wrist pitch")
 print("Use V and B to control wrist roll")
-print("Use 1 to trigger avoidObstacles command")
-print("Use 2 to trigger followObjects command")
+print("Use 1 to capture an image")
 print("Use T to stop robot")
 
 class Stretch_Move:

@@ -8,14 +8,15 @@
 import cv2, rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
+import os
 
 class ImageCapture:
     def __init__(self):
         self.bridge = CvBridge()
         self.sub = rospy.Subscriber('/camera/color/image_raw', Image, self.capture_and_save, queue_size=1)
+        self.save_path = '/home/arjun/motion_ws/src/image_capture/src/Images/'
 
     def capture_and_save(self, msg):
-        identifier = ".jpeg"
         try:
             image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
         except CvBridgeError as e:
@@ -23,12 +24,13 @@ class ImageCapture:
 
         if image is not None:
             print("Captured an image!")
-            name = "captured_image"
+            name = 'captured_image.jpg'
+            path = os.path.join(self.save_path, name)
 
-            if not cv2.imwrite("~/motion_ws/src/image_capture/src/Images/{}{}".format(name, identifier), image):
-                raise Exception("Could not save image")
+            if not cv2.imwrite(path, image):
+                print("Did not save image")
 
-            print("Saved {} at ~/motion_ws/src/image_capture/src/images".format(name))
+            print("Saved {} at ~/motion_ws/src/image_capture/src/Images".format(name))
         else:
             print("No image detected. Please try again")
 
