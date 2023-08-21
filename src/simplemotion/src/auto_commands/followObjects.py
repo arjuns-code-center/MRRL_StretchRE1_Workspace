@@ -1,28 +1,58 @@
 # Author: Arjun Viswanathan
 # Date created: 4/13/23
-# Last modified date: 5/1/23
-# Summary: follows a single object in front of it using only the LiDAR and intelligent decision making
+# Last modified date: 8/21/23
+# Summary: follows a single object in front of it using computer vision from ImageAI library
 
 # How to run from command line:
 # rosrun simplemotion followObjects.py --timer=0
 # For integration with keyboard_teleop, nothing to be done
 
-# TODO: Incorporate computer vision 
+# Helpful: https://answers.ros.org/question/219029/getting-depth-information-from-point-using-python/
 
 # Import system packages
-import math
 import time
 import argparse
+import cv2
+import numpy as np
+
+from imageai.Detection import ObjectDetection
+import os
+import requests
 
 # Import ROS specific packages
 import rospy
-from sensor_msgs.msg import LaserScan
+import message_filters
+from sensor_msgs.msg import Image
 import stretch_body.robot as sb
+from cv_bridge import CvBridge, CvBridgeError
 
 class FollowObject:
     def __init__(self, robot, timer=True):
         self.start_time = time.time()
         print("Starting Follow Object Algorithm...")
+
+        self.execution_path = os.getcwd()
+        self.retinanet_url = 'https://github.com/OlafenwaMoses/ImageAI/releases/download/3.0.0-pretrained/retinanet_resnet50_fpn_coco-eeacb38b.pth'
+        self.yolov3_url = 'https://github.com/OlafenwaMoses/ImageAI/releases/download/3.0.0-pretrained/yolov3.pt'
+        self.tinyyolo_url = 'https://github.com/OlafenwaMoses/ImageAI/releases/download/3.0.0-pretrained/tiny-yolov3.pt'
+
+        self.detector = ObjectDetection()
+        self.detector.setModelTypeAsYOLOv3()
+
+        # r = requests.get(retinanet_url, allow_redirects=True)
+        r = requests.get(self.yolov3_url, allow_redirects=True)
+        # r = requests.get(tinyyolo_url, allow_redirects=True)
+
+        # open('models/retinanet_resnet50_fpn_coco-eeacb38b.pth', 'wb').write(r.content)
+        open('models/yolov3.pt', 'wb').write(r.content)
+        # open('models/tiny-yolov3.pt', 'wb').write(r.content)
+
+        # detector.setModelPath(os.path.join(execution_path , "models/retinanet_resnet50_fpn_coco-eeacb38b.pth"))
+        self.detector.setModelPath(os.path.join(self.execution_path , "models/yolov3.pt"))
+        # detector.setModelPath(os.path.join(execution_path , "models/tiny-yolov3.pt"))
+
+        self.detector.loadModel()
+        self.custom_objects = self.detector.CustomObjects(person=True)
 
         self.robot = robot
         self.base = self.robot.base
@@ -37,107 +67,49 @@ class FollowObject:
         self.distance = 0.4
         self.ignore = 0.3
 
-        self.currentState = None
-        self.previousState = None
-        self.currentStateChanged = True
-
-        self.sub = rospy.Subscriber('/scan', LaserScan, self.computeRegions)
+        self.rgb_sub = message_filters.Subscriber('/camera/color/image_raw', Image)
+        self.depth_sub = message_filters.Subscriber('/camera/depth/image', Image)
+        self.sync = message_filters.TimeSynchronizer([self.rgb_sub, self.depth_sub], 10)
+        self.sync.registerCallback(self.takeAction)
         rospy.spin()
 
-    def computeRegions(self, msg):   
-        if self.timer:    
-            if time.time() - self.start_time > 30:
-                self.robot.stop()
-                rospy.signal_shutdown("Ending autonomous mode...") 
-        # min_angle = -pi, max_angle = pi, and they both point in front of stretch, where x axis is
-        # calculate a difference from min_angle using unit circle, and then use that to get range index
-        fleft = int((math.pi/6) / msg.angle_increment)
-        left = int((math.pi/2) / msg.angle_increment)
-        fright = int((11*math.pi/6) / msg.angle_increment)
-        right = int((3*math.pi/2) / msg.angle_increment)
-
-        fleftClosest = min(i for i in msg.ranges[fleft:left] if i > self.ignore)
-        frontClosest = min(i for i in msg.ranges[0:fleft] + msg.ranges[fright:] if i > self.ignore)
-        frightClosest = min(i for i in msg.ranges[right:fright] if i > self.ignore)
-
-        # Here we want to backup and move away from obstacles when they get too close
-        regions = {
-        'stop': frontClosest <= 2*self.distance and frontClosest > self.distance,
-        'fleft': fleftClosest < 3*self.distance and fleftClosest > 2*self.distance,
-        'front':  frontClosest < 3*self.distance and frontClosest > 2*self.distance,
-        'fright':  frightClosest < 3*self.distance and frightClosest > 2*self.distance,
-        'backup': fleftClosest <= self.distance or frontClosest <= self.distance or frightClosest <= self.distance
-        }
-
-        self.takeAction(regions)
-        if self.currentStateChanged: # only print the state when it changes
-            print("Current: {}, Previous: {}".format(self.currentState, self.previousState))
-            self.previousState = self.currentState
-
-    def takeAction(self, regions):
-        # Left is positive, right is negative
-
+    def takeAction(self, rgb_img, depth_img):
         xm = 0
         xr = 0
-        tempState = self.currentState
-        oldDelay = 0.1
+        mp = (0, 0)
 
-        delay = oldDelay # updates delay based on action calculated to allow sufficient time 
+        try:
+            cv2_rgbimg = CvBridge().imgmsg_to_cv2(rgb_img, 'brg8')
+            cv2_depthimg = CvBridge().imgmsg_to_cv2(depth_img, 'brg8')
+        except CvBridgeError as e:
+            rospy.logwarn('CV Bridge Error: {0}'.format(e))
 
-        # Single region detected by a normal size object
-        if regions['front'] and not regions['fright'] and not regions['fleft']: # Obstacle only in the front
-            tempState = 'front'
+        if cv2_rgbimg is not None:
+            detections = self.detector.detectObjectsFromImage(
+                            custom_objects=self.custom_objects,
+                            input_image=cv2_rgbimg,
+                            output_image_path=os.path.join(self.execution_path, "detected.jpg"),
+                            minimum_percentage_probability=60)
+            
+            out_img = cv2.imread(os.path.join(self.execution_path, "detected.jpg"))
+            cv2.imshow("output", out_img)
+            
+            bp = detections[0]["box points"] # (x1, y1, x2, y2)
+            mp = (bp[2] - bp[0], bp[3] - bp[1]) # (x, y)
+            s = out_img.shape # (height, width, 3)
+
+        if cv2_depthimg is not None:
+            depth = cv2_depthimg[mp[0], mp[1]]
+
+        if depth > self.ignore and depth > self.distance:
             xm = self.moveBy
-        elif regions['fright'] and not regions['front'] and not regions['fleft']: # Obstacle only on fright
-            tempState = 'fright'
-            xr = -self.rotBy
-        elif regions['fleft'] and not regions['front'] and not regions['fright']: # Obstacle only on fleft
-            tempState = 'fleft'
-            xr = self.rotBy
-
-        # Multiple regions detected because of large object
-        elif regions['front'] and regions['fright'] and not regions['fleft']: # Obstacle only on front and fright
-            if self.previousState == 'fright':
-                xr = -self.rotBy
-            elif self.previousState == 'front':
-                xm = self.moveBy
-        elif regions['front'] and regions['fleft'] and not regions['fright']: # Obstacle only on front and fleft
-            if self.previousState == 'fleft':
-                xr = self.rotBy
-            elif self.previousState == 'front':
-                xm = self.moveBy
-        elif regions['fleft'] and regions['fright'] and not regions['front']: # Obstacle only on fright and fleft
-            if self.previousState == 'fleft':
-                xr = self.rotBy
-            elif self.previousState == 'fright':
-                xr = -self.rotBy
-        elif regions['front'] and regions['fleft'] and regions['fright']: # Obstacle all over the front sections
-            if self.previousState == 'fleft':
-                xr = self.rotBy
-            elif self.previousState == 'fright':
-                xr = -self.rotBy
-            elif self.previousState == 'front':
-                xm = -self.moveBy
-
-        # Too close, backup. Evaluate as a separate case
-        if regions['backup']: 
-            tempState = 'backup'
+        elif depth > self.ignore and depth < self.distance:
             xm = -self.moveBy
-            xr = 0
 
-        # Too close, backup. Evaluate as a separate case
-        if regions['stop']: 
-            tempState = 'stop'
-            xm = 0
-            xr = 0
-
-        # If state did not change, we do not update previous state. Or else both can become the same and we lose our previous information
-        if tempState == self.currentState:
-            self.currentStateChanged = False
-        else:
-            self.currentStateChanged = True
-
-        self.currentState = tempState
+        if mp[0] < s[0]:
+            xr = self.rotBy
+        elif mp[0] > s[0]:
+            xr = -self.rotBy
 
         if xm != 0:
             self.move_base(xm)
@@ -147,7 +119,7 @@ class FollowObject:
             self.rotate_base(xr)
             self.robot.push_command()
             
-        time.sleep(delay)
+        time.sleep(0.1)
 
     def move_base(self, x, wait=False):
         # Use distance

@@ -1,3 +1,11 @@
+'''
+Author: Arjun Viswanathan
+Date created: 8/21/23
+Date last modified: 8/21/23
+Description: sample computer vision script for object detection off a live camera feed. Using open source ImageAI library
+https://github.com/OlafenwaMoses/ImageAI/tree/master
+'''
+
 from imageai.Detection import ObjectDetection
 import os
 import cv2
@@ -30,6 +38,7 @@ camera = cv2.VideoCapture(0)
 success = 1
 
 print("Reading from camera...\n")
+
 while success:
     success, image = camera.read()
 
@@ -37,9 +46,24 @@ while success:
                     custom_objects=custom_objects,
                     input_image=image,
                     output_image_path=os.path.join(execution_path, "detected.jpg"),
-                    minimum_percentage_probability=40)
+                    minimum_percentage_probability=60)
     
-    for eachObject in detections:
-        print(eachObject["name"] , " : ", eachObject["percentage_probability"], " : ", eachObject["box_points"] )
-        print("--------------------------------")
+    out_img = cv2.imread(os.path.join(execution_path, "detected.jpg"))
+    cv2.imshow("output", out_img)
+
+    bp = detections[0]["box_points"]
+    mp = (bp[2] - bp[0], bp[3] - bp[1])
+    s = out_img.shape
+    
+    print("Boxpoints: {}, Midpoint: {}, Dim: {}".format(bp, mp, s))
+    print("--------------------------------")
+
+    if cv2.waitKey(1) == 27: # ESC key to exit
+        break
+
 print("Camera terminated. Finished reading!\n")
+cv2.destroyAllWindows()
+
+os.remove('models/yolov3.pt')
+# os.remove('models/tiny-yolov3.pt')
+# os.remove('models/retinanet_resnet50_fpn_coco-eeacb38b.pth')
