@@ -41,7 +41,7 @@ print("Reading from camera...\n")
 
 while success:
     success, image = camera.read()
-
+    
     detections = detector.detectObjectsFromImage(
                     custom_objects=custom_objects,
                     input_image=image,
