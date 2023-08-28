@@ -10,6 +10,13 @@
 # Helpful: https://answers.ros.org/question/219029/getting-depth-information-from-point-using-python/
 
 # Import system packages
+
+# TODO: 
+# Find the ROI for robot. Anything outside this box does not matter
+# If min value from depth map is inside box, then find value
+# If value < threshold, then take action to avoid
+# Else, keep moving forward (in both cases)
+
 import time
 import argparse
 import cv2
