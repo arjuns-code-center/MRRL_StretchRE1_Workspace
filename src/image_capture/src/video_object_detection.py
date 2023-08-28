@@ -1,7 +1,7 @@
 '''
 Author: Arjun Viswanathan
 Date created: 8/21/23
-Date last modified: 8/21/23
+Date last modified: 8/28/23
 Description: sample computer vision script for object detection off a live camera feed. Using open source ImageAI library
 https://github.com/OlafenwaMoses/ImageAI/tree/master
 '''

@@ -1,6 +1,6 @@
 # Author: Arjun Viswanathan
 # Date created: 4/13/23
-# Last modified date: 8/21/23
+# Last modified date: 8/28/23
 # Summary: follows a single object in front of it using computer vision from ImageAI library
 
 # How to run from command line:
