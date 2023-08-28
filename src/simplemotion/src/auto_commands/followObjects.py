@@ -52,7 +52,6 @@ class FollowObject:
         # detector.setModelPath(os.path.join(execution_path , "models/tiny-yolov3.pt"))
 
         self.detector.loadModel()
-        self.custom_objects = self.detector.CustomObjects(person=True)
 
         self.robot = robot
         self.base = self.robot.base
@@ -86,7 +85,6 @@ class FollowObject:
 
         if cv2_rgbimg is not None:
             detections = self.detector.detectObjectsFromImage(
-                            custom_objects=self.custom_objects,
                             input_image=cv2_rgbimg,
                             output_image_path=os.path.join(self.execution_path, "detected.jpg"),
                             minimum_percentage_probability=60)
@@ -94,12 +92,18 @@ class FollowObject:
             out_img = cv2.imread(os.path.join(self.execution_path, "detected.jpg"))
             cv2.imshow("output", out_img)
             
-            bp = detections[0]["box points"] # (x1, y1, x2, y2)
-            mp = (bp[2] - bp[0], bp[3] - bp[1]) # (x, y)
-            s = out_img.shape # (height, width, 3)
+            for eachObject in detections:
+                if eachObject["name"] == "person":
+                    bp = detections[0]["box points"] # (x1, y1, x2, y2)
+                    bp_cl = bp[2] - bp[0]
+                    bp_rl = bp[3] - bp[1]
 
-        if cv2_depthimg is not None:
-            depth = cv2_depthimg[mp[0], mp[1]]
+                    if cv2_depthimg is not None:
+                        roi = cv2_depthimg[bp[1]:bp[1] + bp_rl, bp[0]:bp[0] + bp_cl]
+                        depth = np.min(roi)
+
+                    s = out_img.shape # (height, width, 3)
+                    break
 
         if depth > self.ignore and depth > self.distance:
             xm = self.moveBy
