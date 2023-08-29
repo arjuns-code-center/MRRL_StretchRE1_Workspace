@@ -98,16 +98,19 @@ class FollowObject:
             
             out_img = cv2.imread(os.path.join(self.execution_path, "detected.jpg"))
             cv2.imshow("output", out_img)
+            cv2.imshow("depth", cv2_depthimg)
             
             for eachObject in detections:
                 if eachObject["name"] == "person":
-                    bp = detections[0]["box points"] # (x1, y1, x2, y2)
+                    bp = eachObject["box points"] # (x1, y1, x2, y2)
                     bp_cl = bp[2] - bp[0]
                     bp_rl = bp[3] - bp[1]
 
                     if cv2_depthimg is not None:
                         roi = cv2_depthimg[bp[1]:bp[1] + bp_rl, bp[0]:bp[0] + bp_cl]
                         depth = np.min(roi)
+                        mp[1] = np.argmin(roi, axis=0) # y coordinate of min value
+                        mp[0] = np.argmin(roi, axis=1) # x coordinate of min value
 
                     s = out_img.shape # (height, width, 3)
                     break
@@ -117,10 +120,10 @@ class FollowObject:
         elif depth > self.ignore and depth < self.distance:
             xm = -self.moveBy
 
-        if mp[0] < s[0]:
-            xr = self.rotBy
-        elif mp[0] > s[0]:
+        if mp[0] < s[1] / 2:
             xr = -self.rotBy
+        elif mp[0] > s[1] / 2:
+            xr = self.rotBy
 
         if xm != 0:
             self.move_base(xm)
