@@ -51,11 +51,12 @@ class FollowObject:
         # r = requests.get(tinyyolo_url, allow_redirects=True)
 
         # open('models/retinanet_resnet50_fpn_coco-eeacb38b.pth', 'wb').write(r.content)
-        open('models/yolov3.pt', 'wb').write(r.content)
+        path = "~/motion_ws/src/simplemotion/src/models/yolov3.pt"
+        open(path, 'w+b').write(r.content)
         # open('models/tiny-yolov3.pt', 'wb').write(r.content)
 
         # detector.setModelPath(os.path.join(execution_path , "models/retinanet_resnet50_fpn_coco-eeacb38b.pth"))
-        self.detector.setModelPath(os.path.join(self.execution_path , "models/yolov3.pt"))
+        self.detector.setModelPath(os.path.join(self.execution_path , path))
         # detector.setModelPath(os.path.join(execution_path , "models/tiny-yolov3.pt"))
 
         self.detector.loadModel()
