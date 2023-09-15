@@ -14,8 +14,6 @@
 import time
 import argparse
 import cv2
-import numpy as np
-import os
 
 # Import ROS specific packages
 import rospy
@@ -33,8 +31,9 @@ class FollowObject:
         self.base = self.robot.base
         self.timer = timer
 
-        self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_50)
-        self.aruco_params = cv2.aruco.DetectorParameters_create()
+        self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_50)
+        self.aruco_params = cv2.aruco.DetectorParameters()
+        self.detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
 
         self.moveBy = 0.15
         self.rotBy = 0.15
@@ -65,7 +64,7 @@ class FollowObject:
         if cv2_rgbimg is not None:
             s = cv2_rgbimg.shape # (height, width, channels)
 
-            (corners, ids, rejected) = cv2.aruco.detectMarkers(cv2_rgbimg, self.aruco_dict, parameters=self.aruco_params)
+            (corners, ids, rejected) = self.detector.detectMarkers(cv2_rgbimg)
 
             if len(corners) > 0:
                 ids = ids.flatten()
