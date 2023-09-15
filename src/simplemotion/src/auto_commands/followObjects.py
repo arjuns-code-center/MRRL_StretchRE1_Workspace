@@ -1,7 +1,7 @@
 # Author: Arjun Viswanathan
 # Date created: 4/13/23
-# Last modified date: 8/28/23
-# Summary: follows a single object in front of it using computer vision from ImageAI library
+# Last modified date: 9/14/23
+# Summary: follows a single object in front of it using computer vision from ArUCO markers
 
 # How to run from command line:
 # rosrun simplemotion followObjects.py --timer=0
@@ -11,20 +11,11 @@
 
 # Import system packages
 
-# TODO: 
-# Find the ROI for robot. Anything outside this box does not matter
-# If min value from depth map is inside box, then find value
-# If value < threshold, then take action to avoid
-# Else, keep moving forward (in both cases)
-
 import time
 import argparse
 import cv2
 import numpy as np
-
-from imageai.Detection import ObjectDetection
 import os
-import requests
 
 # Import ROS specific packages
 import rospy
@@ -38,32 +29,12 @@ class FollowObject:
         self.start_time = time.time()
         print("Starting Follow Object Algorithm...")
 
-        self.execution_path = os.getcwd()
-        self.retinanet_url = 'https://github.com/OlafenwaMoses/ImageAI/releases/download/3.0.0-pretrained/retinanet_resnet50_fpn_coco-eeacb38b.pth'
-        self.yolov3_url = 'https://github.com/OlafenwaMoses/ImageAI/releases/download/3.0.0-pretrained/yolov3.pt'
-        self.tinyyolo_url = 'https://github.com/OlafenwaMoses/ImageAI/releases/download/3.0.0-pretrained/tiny-yolov3.pt'
-
-        self.detector = ObjectDetection()
-        self.detector.setModelTypeAsYOLOv3()
-
-        # r = requests.get(retinanet_url, allow_redirects=True)
-        r = requests.get(self.yolov3_url, allow_redirects=True)
-        # r = requests.get(tinyyolo_url, allow_redirects=True)
-
-        # open('models/retinanet_resnet50_fpn_coco-eeacb38b.pth', 'wb').write(r.content)
-        path = "~/motion_ws/src/simplemotion/src/models/yolov3.pt"
-        open(path, 'w+b').write(r.content)
-        # open('models/tiny-yolov3.pt', 'wb').write(r.content)
-
-        # detector.setModelPath(os.path.join(execution_path , "models/retinanet_resnet50_fpn_coco-eeacb38b.pth"))
-        self.detector.setModelPath(os.path.join(self.execution_path , path))
-        # detector.setModelPath(os.path.join(execution_path , "models/tiny-yolov3.pt"))
-
-        self.detector.loadModel()
-
         self.robot = robot
         self.base = self.robot.base
         self.timer = timer
+
+        self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_50)
+        self.aruco_params = cv2.aruco.DetectorParameters_create()
 
         self.moveBy = 0.15
         self.rotBy = 0.15
@@ -92,29 +63,35 @@ class FollowObject:
             rospy.logwarn('CV Bridge Error: {0}'.format(e))
 
         if cv2_rgbimg is not None:
-            detections = self.detector.detectObjectsFromImage(
-                            input_image=cv2_rgbimg,
-                            output_image_path=os.path.join(self.execution_path, "detected.jpg"),
-                            minimum_percentage_probability=60)
-            
-            out_img = cv2.imread(os.path.join(self.execution_path, "detected.jpg"))
-            cv2.imshow("output", out_img)
-            cv2.imshow("depth", cv2_depthimg)
-            
-            for eachObject in detections:
-                if eachObject["name"] == "person":
-                    bp = eachObject["box points"] # (x1, y1, x2, y2)
-                    bp_cl = bp[2] - bp[0]
-                    bp_rl = bp[3] - bp[1]
+            s = cv2_rgbimg.shape # (height, width, channels)
 
-                    if cv2_depthimg is not None:
-                        roi = cv2_depthimg[bp[1]:bp[1] + bp_rl, bp[0]:bp[0] + bp_cl]
-                        depth = np.min(roi)
-                        mp[1] = np.argmin(roi, axis=0) # y coordinate of min value
-                        mp[0] = np.argmin(roi, axis=1) # x coordinate of min value
+            (corners, ids, rejected) = cv2.aruco.detectMarkers(cv2_rgbimg, self.aruco_dict, parameters=self.aruco_params)
 
-                    s = out_img.shape # (height, width, 3)
-                    break
+            if len(corners) > 0:
+                ids = ids.flatten()
+
+                for (markerCorner, markerID) in zip(corners, ids):
+                    corners = markerCorner.reshape((4,2))
+                    (topLeft, topRight, bottomRight, bottomLeft) = corners
+
+                    topRight = (int(topRight[0]), int(topRight[1]))
+                    bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
+                    bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
+                    topLeft = (int(topLeft[0]), int(topLeft[1]))
+
+                    cv2.line(cv2_rgbimg, topLeft, topRight, (0,255,0), 2)
+                    cv2.line(cv2_rgbimg, topRight, bottomRight, (0,255,0), 2)
+                    cv2.line(cv2_rgbimg, bottomRight, bottomLeft, (0,255,0), 2)
+                    cv2.line(cv2_rgbimg, bottomLeft, topLeft, (0,255,0), 2)
+
+                    mp[0] = int((topLeft[0] + bottomRight[0]) / 2)
+                    mp[1] = int((topLeft[1] + bottomRight[1]) / 2)
+                    cv2.circle(cv2_rgbimg, (mp[0], mp[1]), 4, (0, 0, 255), -1)
+
+                    cv2.putText(cv2_rgbimg, str(markerID), (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        if cv2_depthimg is not None:
+            depth = cv2_depthimg[mp[0], mp[1]]
 
         if depth > self.ignore and depth > self.distance:
             xm = self.moveBy
