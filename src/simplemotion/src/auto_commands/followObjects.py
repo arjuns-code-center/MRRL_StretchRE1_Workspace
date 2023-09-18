@@ -14,6 +14,7 @@
 import time
 import argparse
 import cv2
+import numpy as np
 
 # Import ROS specific packages
 import rospy
@@ -45,7 +46,7 @@ class FollowObject:
         self.ignore = 0.3
 
         self.rgb_sub = message_filters.Subscriber('/camera/color/image_raw', Image)
-        self.depth_sub = message_filters.Subscriber('/camera/depth/image', Image)
+        self.depth_sub = message_filters.Subscriber('/camera/depth/image_rect_raw', Image)
         self.sync = message_filters.TimeSynchronizer([self.rgb_sub, self.depth_sub], 10)
         self.sync.registerCallback(self.takeAction)
         rospy.spin()
@@ -54,53 +55,59 @@ class FollowObject:
         xm = 0
         xr = 0
         mp = (0, 0)
+        depth = 0
 
         try:
-            cv2_rgbimg = CvBridge().imgmsg_to_cv2(rgb_img, 'brg8')
-            cv2_depthimg = CvBridge().imgmsg_to_cv2(depth_img, 'brg8')
+            cv2_rgbimg = CvBridge().imgmsg_to_cv2(rgb_img, 'bgr8')
+            cv2_depthimg = CvBridge().imgmsg_to_cv2(depth_img, 'passthrough')
+            np_depthimg = np.array(cv2_depthimg, dtype=np.float32)
+
+            if cv2_rgbimg is not None:
+                s = cv2_rgbimg.shape # (height, width, channels)
+
+                (corners, ids, rejected) = self.detector.detectMarkers(cv2_rgbimg)
+
+                if len(corners) > 0:
+                    ids = ids.flatten()
+
+                    for (markerCorner, markerID) in zip(corners, ids):
+                        corners = markerCorner.reshape((4,2))
+                        (topLeft, topRight, bottomRight, bottomLeft) = corners
+
+                        topRight = (int(topRight[0]), int(topRight[1]))
+                        bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
+                        bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
+                        topLeft = (int(topLeft[0]), int(topLeft[1]))
+
+                        cv2.line(cv2_rgbimg, topLeft, topRight, (0,255,0), 2)
+                        cv2.line(cv2_rgbimg, topRight, bottomRight, (0,255,0), 2)
+                        cv2.line(cv2_rgbimg, bottomRight, bottomLeft, (0,255,0), 2)
+                        cv2.line(cv2_rgbimg, bottomLeft, topLeft, (0,255,0), 2)
+
+                        mp[0] = int((topLeft[0] + bottomRight[0]) / 2)
+                        mp[1] = int((topLeft[1] + bottomRight[1]) / 2)
+                        cv2.circle(cv2_rgbimg, (mp[0], mp[1]), 4, (0, 0, 255), -1)
+
+                        cv2.putText(cv2_rgbimg, str(markerID), (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+                        if np_depthimg is not None:
+                            depth = np_depthimg[mp[0], mp[1]]
+
+                        print("Marker Detected! ID: {}, Center: {}, Distance: {}".format(str(markerID), mp, depth))
+
+                if depth > self.ignore and depth > self.distance:
+                    xm = self.moveBy
+                elif depth > self.ignore and depth < self.distance:
+                    xm = -self.moveBy
+
+                if mp[0] < s[1] / 2:
+                    xr = -self.rotBy
+                elif mp[0] > s[1] / 2:
+                    xr = self.rotBy
+            else:
+                print("No marker detected :(")
         except CvBridgeError as e:
             rospy.logwarn('CV Bridge Error: {0}'.format(e))
-
-        if cv2_rgbimg is not None:
-            s = cv2_rgbimg.shape # (height, width, channels)
-
-            (corners, ids, rejected) = self.detector.detectMarkers(cv2_rgbimg)
-
-            if len(corners) > 0:
-                ids = ids.flatten()
-
-                for (markerCorner, markerID) in zip(corners, ids):
-                    corners = markerCorner.reshape((4,2))
-                    (topLeft, topRight, bottomRight, bottomLeft) = corners
-
-                    topRight = (int(topRight[0]), int(topRight[1]))
-                    bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
-                    bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
-                    topLeft = (int(topLeft[0]), int(topLeft[1]))
-
-                    cv2.line(cv2_rgbimg, topLeft, topRight, (0,255,0), 2)
-                    cv2.line(cv2_rgbimg, topRight, bottomRight, (0,255,0), 2)
-                    cv2.line(cv2_rgbimg, bottomRight, bottomLeft, (0,255,0), 2)
-                    cv2.line(cv2_rgbimg, bottomLeft, topLeft, (0,255,0), 2)
-
-                    mp[0] = int((topLeft[0] + bottomRight[0]) / 2)
-                    mp[1] = int((topLeft[1] + bottomRight[1]) / 2)
-                    cv2.circle(cv2_rgbimg, (mp[0], mp[1]), 4, (0, 0, 255), -1)
-
-                    cv2.putText(cv2_rgbimg, str(markerID), (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-        if cv2_depthimg is not None:
-            depth = cv2_depthimg[mp[0], mp[1]]
-
-        if depth > self.ignore and depth > self.distance:
-            xm = self.moveBy
-        elif depth > self.ignore and depth < self.distance:
-            xm = -self.moveBy
-
-        if mp[0] < s[1] / 2:
-            xr = -self.rotBy
-        elif mp[0] > s[1] / 2:
-            xr = self.rotBy
 
         if xm != 0:
             self.move_base(xm)
