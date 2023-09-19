@@ -312,11 +312,19 @@ class BetterAvoidWithGoal:
 
         self.startCoords = (0, 0)
         self.goalCoords = goalCoords
+
         self.possibleActions = {
             'left': (-1, 0),
             'front': (0, 1),
             'right': (1, 0),
             'back': (0, -1)
+        }
+
+        self.movements = {
+            'left': self.rotBy * 2,
+            'front': self.moveBy,
+            'right': -self.rotBy * 2,
+            'back': -self.moveBy
         }
 
         self.sub = rospy.Subscriber('/scan', LaserScan, self.computeBetterRegions)
@@ -380,6 +388,7 @@ class BetterAvoidWithGoal:
             d[action] = self.calculateManhattanDistance(self.startCoords + action)
 
         o = []
+        # Figure out where the obstacles are at according to LiDAR detected regions
         # Single region detected by a normal size object
         if regions['front'] and not regions['fright'] and not regions['fleft']: # Obstacle only in the front
             tempState = 'front'
@@ -463,7 +472,7 @@ class BetterAvoidWithGoal:
 
             if self.previousState == 'backup':
                 # xr = -1.57
-                o.remove('back')
+                o.append('front')
                 delay = newDelay
             # else:
             #     xm = self.moveBy
@@ -474,6 +483,7 @@ class BetterAvoidWithGoal:
         # Too close, backup. Evaluate as a separate case
         if regions['backup']: 
             tempState = 'backup'
+            o.append('front')
             # xm = -self.moveBy
             # xr = 0
 
@@ -484,6 +494,14 @@ class BetterAvoidWithGoal:
             self.currentStateChanged = True
 
         self.currentState = tempState
+
+        actionToTake = list(d.keys())[list(d.values()).index(min(d[a] for a in self.possibleActions))]
+        self.startCoords += self.possibleActions[actionToTake]
+
+        if actionToTake == 'left' or actionToTake == 'right':
+            xr = self.movements[actionToTake]
+        else:
+            xm = self.movements[actionToTake]
 
         if xm != 0:
             self.move_base(xm)
