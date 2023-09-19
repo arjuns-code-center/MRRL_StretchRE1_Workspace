@@ -1,6 +1,6 @@
 # Author: Arjun Viswanathan
 # Date created: 4/13/23
-# Last modified date: 9/14/23
+# Last modified date: 9/19/23
 # Summary: follows a single object in front of it using computer vision from ArUCO markers
 
 # How to run from command line:
@@ -59,8 +59,7 @@ class FollowObject:
 
         try:
             cv2_rgbimg = CvBridge().imgmsg_to_cv2(rgb_img, 'bgr8')
-            cv2_depthimg = CvBridge().imgmsg_to_cv2(depth_img, 'passthrough')
-            np_depthimg = np.array(cv2_depthimg, dtype=np.float32)
+            cv2_depthimg = CvBridge().imgmsg_to_cv2(depth_img, depth_img.encoding)
 
             if cv2_rgbimg is not None:
                 s = cv2_rgbimg.shape # (height, width, channels)
@@ -90,19 +89,20 @@ class FollowObject:
 
                         cv2.putText(cv2_rgbimg, str(markerID), (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-                        if np_depthimg is not None:
-                            depth = np_depthimg[mp[0], mp[1]]
+                        if cv2_depthimg is not None:
+                            depth = cv2_depthimg[mp[0], mp[1]]
 
                         print("Marker Detected! ID: {}, Center: {}, Distance: {}".format(str(markerID), mp, depth))
 
-                if depth > self.ignore and depth > self.distance:
-                    xm = self.moveBy
-                elif depth > self.ignore and depth < self.distance:
-                    xm = -self.moveBy
+                if depth > self.ignore:
+                    if depth > self.distance:
+                        xm = self.moveBy
+                    elif depth < self.distance:
+                        xm = -self.moveBy
 
-                if mp[0] < s[1] / 2:
+                if mp[1] < s[1] / 2:
                     xr = -self.rotBy
-                elif mp[0] > s[1] / 2:
+                elif mp[1] > s[1] / 2:
                     xr = self.rotBy
             else:
                 print("No marker detected :(")
