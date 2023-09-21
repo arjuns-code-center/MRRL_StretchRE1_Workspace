@@ -290,7 +290,7 @@ class BetterAvoid:
             self.base.wait_until_at_setpoint(self.timeout)
 
 class BetterAvoidWithGoal:
-    def __init__(self, robot, timer=True, goalCoords=(0, 0)):
+    def __init__(self, robot, startCoords=(0, 0), goalCoords=(0, 0)):
         self.start_time = time.time()
         print("Starting Better Navigation Algorithm With Goal...")
 
@@ -311,7 +311,7 @@ class BetterAvoidWithGoal:
         self.previousState = None
         self.currentStateChanged = True
 
-        self.startCoords = (0, 0)
+        self.startCoords = startCoords
         self.goalCoords = goalCoords
 
         self.possibleActions = {
@@ -332,10 +332,9 @@ class BetterAvoidWithGoal:
         rospy.spin()
 
     def computeBetterRegions(self, msg):
-        if self.timer:
-            if (time.time() - self.start_time) > 30:
-                self.robot.stop()
-                rospy.signal_shutdown("Ending autonomous mode...")
+        if self.startCoords == self.goalCoords:
+            self.robot.stop()
+            rospy.signal_shutdown("Goal reached! Ending autonomous mode...")
 
         # min_angle = -pi, max_angle = pi, and they both point in front of stretch, where x axis is
         # calculate a difference from min_angle using unit circle, and then use that to get range index
@@ -538,10 +537,12 @@ if __name__ == "__main__":
     args = argparse.ArgumentParser()
     args.add_argument('--algotype', default='better', type=str, help='what avoidance algorithm to run')
     args.add_argument('--timer', default=False, type=str, help='what avoidance algorithm to run')
+    args.add_argument('--start', default=(0, 0), type=tuple, help='what are the start coordinates')
     args.add_argument('--goal', default=(0, 0), type=tuple, help='what are the goal coordinates')
     args, unknown = args.parse_known_args()
     algorithmType = args.algotype
     timer = int(args.timer)
+    start = args.start
     goal = args.goal
 
     r = sb.Robot()
@@ -557,4 +558,4 @@ if __name__ == "__main__":
         BetterAvoid(r, timer)
     elif algorithmType == 'bettergoal':
         print('Using BetterAvoidWithGoal algorithm to navigate obstacles')
-        BetterAvoidWithGoal(r, timer, goal)
+        BetterAvoidWithGoal(r, start, goal)

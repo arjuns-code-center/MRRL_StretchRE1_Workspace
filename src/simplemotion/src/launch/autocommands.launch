@@ -19,6 +19,10 @@
         default="0"
     />
     <arg
+        name="--start"
+        default="(0, 0)"
+    />
+    <arg
         name="--goal"
         default="(0, 0)"
     />
@@ -35,6 +39,7 @@
         <node name="avoid_obstacles" pkg="simplemotion" type="avoidObstacles.py" output="screen" respawn="true">
             <param name="--algotype" value="$(arg --algotype)"/>
             <param name="--timer" value="$(arg --timer)"/>
+            <param name="--start" value="$(arg --start)"/>
             <param name="--goal" value="$(arg --goal)"/>
         </node>
     </group>
