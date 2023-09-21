@@ -1,12 +1,13 @@
 # Author: Arjun Viswanathan
 # Date created: 3/9/23
-# Last modified date: 5/1/23
+# Last modified date: 9/20/23
 # Summary: Navigate around obstacles in front of stretch using LiDAR in autonomous mode
 # SimpleAvoid: performs avoidance while continuously going forward
 # BetterAvoid: performs avoidance and considers previous states to navigate better
+# BetterAvoidWithGoal: performs avoidance with previous states but with another added constraint of minimizing distance to goal
 
 # How to run the file from command line:
-# rosrun simplemotion avoidObstacles.py --algotype=<SPECIFY TYPE> --timer=0
+# rosrun simplemotion avoidObstacles.py --algotype=<SPECIFY TYPE> --timer=0 --goal=<SPECIFY GOAL TUPLE>
 # For integration with keyboard_teleop, it will default to BetterAvoid
 
 # Import system packages
@@ -537,9 +538,11 @@ if __name__ == "__main__":
     args = argparse.ArgumentParser()
     args.add_argument('--algotype', default='better', type=str, help='what avoidance algorithm to run')
     args.add_argument('--timer', default=False, type=str, help='what avoidance algorithm to run')
+    args.add_argument('--goal', default=(0, 0), type=tuple, help='what are the goal coordinates')
     args, unknown = args.parse_known_args()
     algorithmType = args.algotype
     timer = int(args.timer)
+    goal = args.goal
 
     r = sb.Robot()
     r.startup()
@@ -552,3 +555,6 @@ if __name__ == "__main__":
     elif algorithmType == 'better':
         print("Using BetterAvoid algorithm to navigate obstacles")
         BetterAvoid(r, timer)
+    elif algorithmType == 'bettergoal':
+        print('Using BetterAvoidWithGoal algorithm to navigate obstacles')
+        BetterAvoidWithGoal(r, timer, goal)

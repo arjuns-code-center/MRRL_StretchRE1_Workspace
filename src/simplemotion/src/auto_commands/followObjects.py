@@ -52,6 +52,11 @@ class FollowObject:
         rospy.spin()
 
     def takeAction(self, rgb_img, depth_img):
+        if self.timer:
+            if (time.time() - self.start_time) > 30:
+                self.robot.stop()
+                rospy.signal_shutdown("Ending autonomous mode...")
+                
         xm = 0
         xr = 0
         mp = (0, 0)
