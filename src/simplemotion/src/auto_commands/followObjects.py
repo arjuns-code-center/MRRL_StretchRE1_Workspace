@@ -32,7 +32,7 @@ class FollowObject:
         self.base = self.robot.base
         self.timer = timer
 
-        self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_50)
+        self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
         self.aruco_params = cv2.aruco.DetectorParameters()
         self.detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
 
@@ -42,11 +42,11 @@ class FollowObject:
         self.a = 5.0
         self.timeout = 1
 
-        self.distance = 0.4
-        self.ignore = 0.3
+        self.distance = 400
+        self.ignore = 200
 
         self.rgb_sub = message_filters.Subscriber('/camera/color/image_raw', Image)
-        self.depth_sub = message_filters.Subscriber('/camera/depth/image_rect_raw', Image)
+        self.depth_sub = message_filters.Subscriber('/camera/aligned_depth_to_color/image_raw', Image)
         self.sync = message_filters.TimeSynchronizer([self.rgb_sub, self.depth_sub], 10)
         self.sync.registerCallback(self.takeAction)
         rospy.spin()
@@ -59,7 +59,7 @@ class FollowObject:
                 
         xm = 0
         xr = 0
-        mp = (0, 0)
+        mp = [0, 0]
         depth = 0
 
         try:
@@ -95,20 +95,23 @@ class FollowObject:
                         cv2.putText(cv2_rgbimg, str(markerID), (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
                         if cv2_depthimg is not None:
-                            depth = cv2_depthimg[mp[0], mp[1]]
+                            try:
+                                depth = cv2_depthimg[mp[0], mp[1]]
+                            except IndexError:
+                                continue
 
-                        print("Marker Detected! ID: {}, Center: {}, Distance: {}".format(str(markerID), mp, depth))
+                        print("Marker Detected! ID: {}, Center: {}, Distance: {}, Dim: {}".format(str(markerID), mp, depth, s))
 
-                if depth > self.ignore:
-                    if depth > self.distance:
-                        xm = self.moveBy
-                    elif depth < self.distance:
-                        xm = -self.moveBy
+                    if depth > self.ignore:
+                        if depth > self.distance:
+                            xm = self.moveBy
+                        elif depth < self.distance:
+                            xm = -self.moveBy
 
-                if mp[1] < s[1] / 2:
-                    xr = -self.rotBy
-                elif mp[1] > s[1] / 2:
-                    xr = self.rotBy
+                    if mp[0] < s[0] / 2:
+                        xr = -self.rotBy
+                    elif mp[0] > s[0] / 2:
+                        xr = self.rotBy
             else:
                 print("No marker detected :(")
         except CvBridgeError as e:

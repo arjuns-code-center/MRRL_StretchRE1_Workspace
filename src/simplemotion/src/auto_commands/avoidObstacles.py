@@ -315,10 +315,10 @@ class BetterAvoidWithGoal:
         self.goalCoords = goalCoords
 
         self.possibleActions = {
-            'left': (-1, 0),
-            'front': (0, 1),
-            'right': (1, 0),
-            'back': (0, -1)
+            'left': (-self.moveBy, 0),
+            'front': (0, self.moveBy),
+            'right': (self.moveBy, 0),
+            'back': (0, -self.moveBy)
         }
 
         self.movements = {
@@ -385,7 +385,7 @@ class BetterAvoidWithGoal:
             'back': 0
         }
         for action in self.possibleActions:
-            d[action] = self.calculateManhattanDistance(self.startCoords + action)
+            d[action] = self.calculateManhattanDistance(self.startCoords + self.possibleActions[action])
 
         o = []
         # Figure out where the obstacles are at according to LiDAR detected regions
@@ -537,13 +537,15 @@ if __name__ == "__main__":
     args = argparse.ArgumentParser()
     args.add_argument('--algotype', default='better', type=str, help='what avoidance algorithm to run')
     args.add_argument('--timer', default=False, type=str, help='what avoidance algorithm to run')
-    args.add_argument('--start', default=(0, 0), type=tuple, help='what are the start coordinates')
-    args.add_argument('--goal', default=(0, 0), type=tuple, help='what are the goal coordinates')
+    args.add_argument('--start', default=(0, 0), type=str, help='what are the start coordinates')
+    args.add_argument('--goal', default=(0, 0), type=str, help='what are the goal coordinates')
     args, unknown = args.parse_known_args()
     algorithmType = args.algotype
     timer = int(args.timer)
-    start = args.start
-    goal = args.goal
+    start = eval(args.start)
+    goal = eval(args.goal)
+
+    print(start, type(start), goal, type(goal))
 
     r = sb.Robot()
     r.startup()
