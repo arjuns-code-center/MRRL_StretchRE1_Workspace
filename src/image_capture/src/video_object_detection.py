@@ -18,6 +18,7 @@ print("Reading from camera...\n")
 
 while success:
     success, image = camera.read()
+    s = image.shape
 
     (corners, ids, rejected) = detector.detectMarkers(image)
 
@@ -43,6 +44,7 @@ while success:
             cv2.circle(image, (cX, cY), 4, (0, 0, 255), -1)
 
             cv2.putText(image, str(markerID), (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            print("Marker detected! ID: {}, Center: {}, Dim: {}".format(str(markerID), [cX, cY], s))
 
             #rvec, tvec, _ = cv2.aruco.esstimatePoseSingleMarkers(corners, )
 
