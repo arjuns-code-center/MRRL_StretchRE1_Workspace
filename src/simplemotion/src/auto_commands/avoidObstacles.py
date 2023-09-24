@@ -1,6 +1,6 @@
 # Author: Arjun Viswanathan
 # Date created: 3/9/23
-# Last modified date: 9/20/23
+# Last modified date: 9/24/23
 # Summary: Navigate around obstacles in front of stretch using LiDAR in autonomous mode
 # SimpleAvoid: performs avoidance while continuously going forward
 # BetterAvoid: performs avoidance and considers previous states to navigate better
@@ -312,6 +312,7 @@ class BetterAvoidWithGoal:
         self.currentStateChanged = True
 
         self.startCoords = startCoords
+        self.phi = 0
         self.goalCoords = goalCoords
 
         self.possibleActions = {
