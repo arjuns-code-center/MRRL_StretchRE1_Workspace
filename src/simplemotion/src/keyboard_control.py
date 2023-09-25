@@ -36,6 +36,14 @@ class Stretch_Move:
     def __init__(self):
         # Define robot object and start it up
         self.robot = sb.Robot()
+
+        # Initialize each part of robot
+        self.arm = self.robot.arm
+        self.base = self.robot.base
+        self.lift = self.robot.lift
+        self.endofarm = self.robot.end_of_arm # stores wrist_yaw, stretch_gripper, wrist_pitch, and wrist_roll
+        self.head = self.robot.head
+
         self.robot.startup()
 
         self.robot.pimu.trigger_beep()
@@ -45,13 +53,6 @@ class Stretch_Move:
         self.robot.pimu.trigger_beep()
         self.robot.push_command()
         time.sleep(0.5)
-
-        # Initialize each part of robot
-        self.arm = self.robot.arm
-        self.base = self.robot.base
-        self.lift = self.robot.lift
-        self.endofarm = self.robot.end_of_arm # stores wrist_yaw, stretch_gripper, wrist_pitch, and wrist_roll
-        self.head = self.robot.head
 
         # Initialize the params for each part
         self.base_v = self.base.params['motion']['max']['vel_m']
@@ -66,6 +67,7 @@ class Stretch_Move:
         self.timeout = 1.0
 
     def execCommand(self):
+        print("Left wheel: {}, Right Wheel: {}".format(self.base.left_wheel.status, self.base.right_wheel.status))
         self.robot.push_command()
         self.delay(0.05)
 
