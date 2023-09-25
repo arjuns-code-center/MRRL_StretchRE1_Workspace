@@ -6,6 +6,11 @@ Description: sample computer vision script for object detection off a live camer
 '''
 
 import cv2
+import scipy.io as sio
+
+camParams = sio.loadmat("camParams.mat")
+cameraMatrix = camParams['cameraMatrix']
+distCoeffs = camParams['distortionCoefficients']
 
 camera = cv2.VideoCapture(0)
 success = 1
@@ -13,6 +18,7 @@ success = 1
 aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_50)
 aruco_params = cv2.aruco.DetectorParameters()
 detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
+markerLength = 49 # mm
 
 print("Reading from camera...\n")
 
@@ -46,9 +52,10 @@ while success:
             cv2.circle(image, (cX, cY), 4, (0, 0, 255), -1)
 
             cv2.putText(image, str(markerID), (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            print("Marker detected! ID: {}, Center: {}, Dim: {}".format(str(markerID), [cX, cY], s))
 
-            #rvec, tvec, _ = cv2.aruco.esstimatePoseSingleMarkers(corners, )
+            rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(markerCorner, markerLength, cameraMatrix, distCoeffs)
+            #cv2.aruco.drawPlanarBoard(image, cameraMatrix, distCoeffs, rvec, tvec, 100)
+            print("Marker detected! ID: {}, Center: {}, Dim: {}, RVEC: {}, TVEC: {}".format(str(markerID), [cX, cY], s, rvec, tvec))
 
     cv2.imshow("ArUCO Detection", image)
 
