@@ -1,7 +1,7 @@
 '''
 Author: Arjun Viswanathan
 Date created: 8/21/23
-Date last modified: 9/14/23
+Date last modified: 9/25/23
 Description: sample computer vision script for object detection off a live camera feed. Usign OpenCV ArUCO marker detection
 '''
 
@@ -15,6 +15,8 @@ aruco_params = cv2.aruco.DetectorParameters()
 detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
 
 print("Reading from camera...\n")
+
+i = 0
 
 while success:
     success, image = camera.read()
@@ -49,6 +51,10 @@ while success:
             #rvec, tvec, _ = cv2.aruco.esstimatePoseSingleMarkers(corners, )
 
     cv2.imshow("ArUCO Detection", image)
+
+    if cv2.waitKey(33) == ord('a'):
+        cv2.imwrite("Images/image_{}.png".format(i), image)
+        i += 1
 
     if cv2.waitKey(1) == 27: # ESC key to exit
         break
