@@ -1,7 +1,6 @@
 '''
 Author: Arjun Viswanathan
-SDP Team 12 ArUco Detection Script
-Date created: 9/25/23
+Date created: 9/21/23
 Date last modified: 9/25/23
 Description: base code for detecting ArUco markers off a live camera feed
 '''
