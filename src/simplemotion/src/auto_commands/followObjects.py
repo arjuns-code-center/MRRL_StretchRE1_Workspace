@@ -1,10 +1,11 @@
 # Author: Arjun Viswanathan
 # Date created: 4/13/23
-# Last modified date: 9/22/23
+# Last modified date: 9/25/23
 # Summary: follows a single object in front of it using computer vision from ArUCO markers
 
 # How to run from command line:
-# rosrun simplemotion followObjects.py --timer=0
+# rosrun simplemotion followObjects.py
+# rosrun simplemotion followObjects.py --timer=<TIME>
 # For integration with keyboard_teleop, nothing to be done
 
 # Helpful: https://answers.ros.org/question/219029/getting-depth-information-from-point-using-python/
@@ -14,11 +15,10 @@
 import time
 import argparse
 import cv2
-import numpy as np
+import scipy.io as sio
 
 # Import ROS specific packages
 import rospy
-import message_filters
 from sensor_msgs.msg import Image
 import stretch_body.robot as sb
 from cv_bridge import CvBridge, CvBridgeError
@@ -32,9 +32,15 @@ class FollowObject:
         self.base = self.robot.base
         self.timer = timer
 
+        # Load camera parameters from MATLAB
+        camParams = sio.loadmat("camParams.mat")
+        self.cameraMatrix = camParams['cameraMatrix']
+        self.distCoeffs = camParams['distortionCoefficients']
+
         self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
         self.aruco_params = cv2.aruco.DetectorParameters()
         self.detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
+        self.markerLength = 142 # mm
 
         self.moveBy = 0.15
         self.rotBy = 0.15
@@ -45,13 +51,10 @@ class FollowObject:
         self.distance = 400
         self.ignore = 200
 
-        self.rgb_sub = message_filters.Subscriber('/camera/color/image_raw', Image)
-        self.depth_sub = message_filters.Subscriber('/camera/aligned_depth_to_color/image_raw', Image)
-        self.sync = message_filters.TimeSynchronizer([self.rgb_sub, self.depth_sub], 10)
-        self.sync.registerCallback(self.takeAction)
+        self.rgb_sub = rospy.Subscriber('/camera/color/image_raw', Image, self.takeAction)
         rospy.spin()
 
-    def takeAction(self, rgb_img, depth_img):
+    def takeAction(self, rgb_img):
         if self.timer:
             if (time.time() - self.start_time) > 30:
                 self.robot.stop()
@@ -64,7 +67,6 @@ class FollowObject:
 
         try:
             cv2_rgbimg = CvBridge().imgmsg_to_cv2(rgb_img, 'bgr8')
-            cv2_depthimg = CvBridge().imgmsg_to_cv2(depth_img, depth_img.encoding)
 
             if cv2_rgbimg is not None:
                 s = cv2_rgbimg.shape # (height, width, channels)
@@ -74,33 +76,27 @@ class FollowObject:
                 if len(corners) > 0:
                     ids = ids.flatten()
 
+                    # For every detected marker, we do pose estimation using its corners and find the rotational and translational vectors
                     for (markerCorner, markerID) in zip(corners, ids):
-                        corners = markerCorner.reshape((4,2))
-                        (topLeft, topRight, bottomRight, bottomLeft) = corners
+                        reshapedCorners = markerCorner.reshape((4, 2))
+                        (tL, tR, bR, bL) = reshapedCorners
+                        tL = [int(tL[0]), int(tL[1])]
+                        tR = [int(tR[0]), int(tR[1])]
+                        bR = [int(bR[0]), int(bR[1])]
+                        bL = [int(bL[0]), int(bL[1])]
 
-                        topRight = (int(topRight[0]), int(topRight[1]))
-                        bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
-                        bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
-                        topLeft = (int(topLeft[0]), int(topLeft[1]))
+                        mp[0] = int((tL[0] + bR[0]) / 2)
+                        mp[1] = int((tL[1] + bR[1]) / 2)
+                        
+                        rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(markerCorner, self.markerLength, self.cameraMatrix, self.distCoeffs)
+                        rvec = rvec[0][0]
+                        tvec = tvec[0][0]
 
-                        cv2.line(cv2_rgbimg, topLeft, topRight, (0,255,0), 2)
-                        cv2.line(cv2_rgbimg, topRight, bottomRight, (0,255,0), 2)
-                        cv2.line(cv2_rgbimg, bottomRight, bottomLeft, (0,255,0), 2)
-                        cv2.line(cv2_rgbimg, bottomLeft, topLeft, (0,255,0), 2)
+                        depth = round(tvec[2], 2) # mm
 
-                        mp[0] = int((topLeft[0] + bottomRight[0]) / 2)
-                        mp[1] = int((topLeft[1] + bottomRight[1]) / 2)
-                        cv2.circle(cv2_rgbimg, (mp[0], mp[1]), 4, (0, 0, 255), -1)
-
-                        cv2.putText(cv2_rgbimg, str(markerID), (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-                        if cv2_depthimg is not None:
-                            try:
-                                depth = cv2_depthimg[mp[0], mp[1]]
-                            except IndexError:
-                                continue
-
-                        print("Marker Detected! ID: {}, Center: {}, Distance: {}, Dim: {}".format(str(markerID), mp, depth, s))
+                        # Printing distance on the image
+                        cv2.putText(cv2_rgbimg, str(depth), (tL[0], tL[1] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                        print("Marker detected! ID: {}, RVEC: {}, TVEC: {}".format(str(markerID), rvec, tvec))
 
                     if depth > self.ignore:
                         if depth > self.distance:

@@ -1,13 +1,15 @@
 '''
 Author: Arjun Viswanathan
-Date created: 8/21/23
+SDP Team 12 ArUco Detection Script
+Date created: 9/25/23
 Date last modified: 9/25/23
-Description: sample computer vision script for object detection off a live camera feed. Usign OpenCV ArUCO marker detection
+Description: base code for detecting ArUco markers off a live camera feed
 '''
 
 import cv2
 import scipy.io as sio
 
+# Load camera parameters from MATLAB
 camParams = sio.loadmat("camParams.mat")
 cameraMatrix = camParams['cameraMatrix']
 distCoeffs = camParams['distortionCoefficients']
@@ -15,51 +17,57 @@ distCoeffs = camParams['distortionCoefficients']
 camera = cv2.VideoCapture(0)
 success = 1
 
-aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_50)
+# Set up the ArUco dictionary and detector object
+aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_1000)
 aruco_params = cv2.aruco.DetectorParameters()
 detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
-markerLength = 49 # mm
+markerLength = 142 # mm
 
 print("Reading from camera...\n")
 
+# To keep track of saved images
 i = 0
+j = 0
 
 while success:
     success, image = camera.read()
     s = image.shape
 
+    # First we detect all markers in the frame
     (corners, ids, rejected) = detector.detectMarkers(image)
-
-    if len(corners) > 0:
+ 
+    if len(corners) > 0: # we have detected something
         ids = ids.flatten()
+        cv2.aruco.drawDetectedMarkers(image, corners, ids) # draw outlines for all 
 
+        # For every detected marker, we do pose estimation using its corners and find the rotational and translational vectors
         for (markerCorner, markerID) in zip(corners, ids):
-            corners = markerCorner.reshape((4,2))
-            (topLeft, topRight, bottomRight, bottomLeft) = corners
-
-            topRight = (int(topRight[0]), int(topRight[1]))
-            bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
-            bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
-            topLeft = (int(topLeft[0]), int(topLeft[1]))
-
-            cv2.line(image, topLeft, topRight, (0,255,0), 2)
-            cv2.line(image, topRight, bottomRight, (0,255,0), 2)
-            cv2.line(image, bottomRight, bottomLeft, (0,255,0), 2)
-            cv2.line(image, bottomLeft, topLeft, (0,255,0), 2)
-
-            cX = int((topLeft[0] + bottomRight[0]) / 2)
-            cY = int((topLeft[1] + bottomRight[1]) / 2)
-            cv2.circle(image, (cX, cY), 4, (0, 0, 255), -1)
-
-            cv2.putText(image, str(markerID), (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
+            reshapedCorners = markerCorner.reshape((4, 2))
+            (tL, tR, bR, bL) = reshapedCorners
+            tL = [int(tL[0]), int(tL[1])]
+            tR = [int(tR[0]), int(tR[1])]
+            bR = [int(bR[0]), int(bR[1])]
+            bL = [int(bL[0]), int(bL[1])]
+            
             rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(markerCorner, markerLength, cameraMatrix, distCoeffs)
-            #cv2.aruco.drawPlanarBoard(image, cameraMatrix, distCoeffs, rvec, tvec, 100)
-            print("Marker detected! ID: {}, Center: {}, Dim: {}, RVEC: {}, TVEC: {}".format(str(markerID), [cX, cY], s, rvec, tvec))
+            rvec = rvec[0][0]
+            tvec = tvec[0][0]
+
+            # Printing distance on the image
+            cv2.putText(image, str(round(tvec[2], 2)), (tL[0], tL[1] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            print("Marker detected! ID: {}, RVEC: {}, TVEC: {}".format(str(markerID), rvec, tvec))
+
+        # Press 's' key when detecting marker to save image. Only available when marker is detected
+        if cv2.waitKey(33) == ord('s'):
+            print("Taking ArUco pic {}...".format(j))
+            cv2.imwrite("Images/aruco_image_{}.png".format(j), image)
+            j += 1
 
     cv2.imshow("ArUCO Detection", image)
 
+    # Press 'a' key to save image for calibration
     if cv2.waitKey(33) == ord('a'):
+        print("Taking pic {}...".format(i))
         cv2.imwrite("Images/image_{}.png".format(i), image)
         i += 1
 
