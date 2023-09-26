@@ -162,6 +162,8 @@ include_directories(
 catkin_install_python(PROGRAMS
   src/commands/capture_image.py
   src/keyboard_control.py
+  src/auto_commands/followMarker.py
+  src/aruco_video_detection.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

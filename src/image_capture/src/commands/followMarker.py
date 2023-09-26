@@ -1,11 +1,11 @@
 # Author: Arjun Viswanathan
 # Date created: 4/13/23
-# Last modified date: 9/25/23
-# Summary: follows a single object in front of it using computer vision from ArUCO markers
+# Last modified date: 9/26/23
+# Summary: follows a single ArUco marker in front of it using computer vision
 
 # How to run from command line:
-# rosrun simplemotion followObjects.py
-# rosrun simplemotion followObjects.py --timer=<TIME>
+# rosrun simplemotion followMarker.py
+# rosrun simplemotion followMarker.py --timer=<TIME>
 # For integration with keyboard_teleop, nothing to be done
 
 # Helpful: https://answers.ros.org/question/219029/getting-depth-information-from-point-using-python/
@@ -23,7 +23,7 @@ from sensor_msgs.msg import Image
 import stretch_body.robot as sb
 from cv_bridge import CvBridge, CvBridgeError
 
-class FollowObject:
+class FollowMarker:
     def __init__(self, robot, timer=True):
         self.start_time = time.time()
         print("Starting Follow Object Algorithm...")
@@ -33,7 +33,7 @@ class FollowObject:
         self.timer = timer
 
         # Load camera parameters from MATLAB
-        camParams = sio.loadmat("camParams.mat")
+        camParams = sio.loadmat("calibration/arjunLaptop_camParams.mat")
         self.cameraMatrix = camParams['cameraMatrix']
         self.distCoeffs = camParams['distortionCoefficients']
 
@@ -96,7 +96,7 @@ class FollowObject:
 
                         # Printing distance on the image
                         cv2.putText(cv2_rgbimg, str(depth), (tL[0], tL[1] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                        print("Marker detected! ID: {}, RVEC: {}, TVEC: {}".format(str(markerID), rvec, tvec))
+                        print("Marker detected! ID: {}, Center (pix): {}, Distance (mm): {}".format(str(markerID), mp, depth))
 
                     if depth > self.ignore:
                         if depth > self.distance:
@@ -145,5 +145,5 @@ if __name__ == "__main__":
 
     r = sb.Robot()
     r.startup()
-    rospy.init_node('follow_objects')
-    FollowObject(r, timer)
+    rospy.init_node('follow_marker')
+    FollowMarker(r, timer)

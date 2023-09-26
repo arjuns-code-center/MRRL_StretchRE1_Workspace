@@ -15,7 +15,6 @@ from stretch_body.hello_utils import *
 import rospy
 
 sys.path.insert(0, '/home/arjun/motion_ws/src/simplemotion/src/auto_commands')
-from followObjects import FollowObject as fO
 from avoidObstacles import BetterAvoid as aO
 
 print("========STRETCH Keyboard Controls========")
@@ -215,9 +214,6 @@ class Keys:
 
         if key == '1':
             aO(self.sm.robot)
-
-        if key == '2':
-            fO(self.sm.robot)
 
         if key == 't' or key == 'T':
             self.sm.robot_stop()

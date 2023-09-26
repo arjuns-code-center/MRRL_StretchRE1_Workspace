@@ -1,0 +1,23 @@
+<!--
+    Author: Arjun Viswanathan
+    Date created: 4/25/23
+    Last date modified: 9/26/23
+    Description: Launch file to launch specific auto command based on 3 user arguments
+-->
+
+<launch>
+    <arg
+        name="followMarker"
+        default="1"
+    />
+    <arg
+        name="--timer"
+        default="0"
+    />
+
+    <group if="$(arg followMarker)">
+        <node name="follow_marker" pkg="image_capture" type="followMarker.py" output="screen" respawn="true">
+            <param name="--timer" value="$(arg --timer)"/>
+        </node>
+    </group>
+</launch>

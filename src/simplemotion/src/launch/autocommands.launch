@@ -1,7 +1,7 @@
 <!--
     Author: Arjun Viswanathan
     Date created: 4/25/23
-    Last date modified: 9/20/23
+    Last date modified: 9/26/23
     Description: Launch file to launch specific auto command based on 3 user arguments
 -->
 
@@ -30,10 +30,6 @@
         name="box"
         default="0"
     />
-    <arg
-        name="followObjects"
-        default="0"
-    />
 
     <group if="$(arg avoidObstacles)">
         <node name="avoid_obstacles" pkg="simplemotion" type="avoidObstacles.py" output="screen" respawn="true">
@@ -46,11 +42,5 @@
 
     <group if="$(arg box)">
         <node name="box" pkg="simplemotion" type="box.py" output="screen" respawn="true"/>
-    </group>
-
-    <group if="$(arg followObjects)">
-        <node name="follow_objects" pkg="simplemotion" type="followObjects.py" output="screen" respawn="true">
-            <param name="--timer" value="$(arg --timer)"/>
-        </node>
     </group>
 </launch>
