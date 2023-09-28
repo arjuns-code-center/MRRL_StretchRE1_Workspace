@@ -10,6 +10,9 @@
 # rosrun simplemotion avoidObstacles.py --algotype=<SPECIFY TYPE> --timer=0 --goal=<SPECIFY GOAL TUPLE>
 # For integration with keyboard_teleop, it will default to BetterAvoid
 
+# TODO: Implement dynamics equations from paper in code 
+# Paper: https://www.sciencedirect.com/science/article/pii/S1319157821000550#s0010
+
 # Import system packages
 import math
 import time
@@ -298,6 +301,11 @@ class BetterAvoidWithGoal:
         self.base = self.robot.base
         self.timer = timer
 
+        # TODO: Correctly change these numbers
+        self.baseWidth = 5 # inch
+        self.wheelDiam = 3 # inch
+        self.ticksPerRev = 3500 # encoder ticks per 1 wheel revolution
+
         self.moveBy = 0.15
         self.rotBy = 0.15
         self.v = 10.0
@@ -312,15 +320,8 @@ class BetterAvoidWithGoal:
         self.currentStateChanged = True
 
         self.startCoords = startCoords
-        self.phi = 0
+        self.phi = 0 # radians
         self.goalCoords = goalCoords
-
-        self.possibleActions = {
-            'left': (-self.moveBy, 0),
-            'front': (0, self.moveBy),
-            'right': (self.moveBy, 0),
-            'back': (0, -self.moveBy)
-        }
 
         self.movements = {
             'left': self.rotBy * 2,
@@ -371,13 +372,15 @@ class BetterAvoidWithGoal:
         # Based on the previous state, actions will change
         # Left is positive, right is negative
 
+        possibleActions = {
+            'left': (0, 0),
+            'front': (self.getdX(), self.getdY()),
+            'right': (0, 0),
+            'back': (self.getdX(), self.getdY())
+        }
+
         xm = 0
         xr = 0
-        tempState = self.currentState
-        oldDelay = 0.1
-        newDelay = 0.2
-
-        delay = oldDelay # updates delay based on action calculated to allow sufficient time 
 
         d = {
             'left': 0,
@@ -385,9 +388,36 @@ class BetterAvoidWithGoal:
             'front': 0,
             'back': 0
         }
-        for action in self.possibleActions:
-            d[action] = self.calculateManhattanDistance(self.startCoords + self.possibleActions[action])
+        for action in possibleActions:
+            d[action] = self.calculateManhattanDistance(self.startCoords + possibleActions[action])
 
+        obs, delay = self.getLiDARDetectedObstacles(regions)
+
+        remainingActions = list(set(possibleActions) - set(obs))
+        actionToTake = list(d.keys())[list(d.values()).index(min(d[a] for a in remainingActions))]
+        self.startCoords += possibleActions[actionToTake]
+        self.phi = self.getdPhi()
+
+        if actionToTake == 'left' or actionToTake == 'right':
+            xr = self.movements[actionToTake]
+        else:
+            xm = self.movements[actionToTake]
+
+        if xm != 0:
+            self.move_base(xm)
+            self.robot.push_command()
+        
+        if xr != 0:
+            self.rotate_base(xr)
+            self.robot.push_command()
+            
+        time.sleep(delay)
+
+    def getLiDARDetectedObstacles(self, regions):
+        oldDelay = 0.1
+        delay = oldDelay # updates delay based on action calculated to allow sufficient time 
+        tempState = self.currentState
+        newDelay = 0.2
         o = []
         # Figure out where the obstacles are at according to LiDAR detected regions
         # Single region detected by a normal size object
@@ -496,24 +526,21 @@ class BetterAvoidWithGoal:
 
         self.currentState = tempState
 
-        actionToTake = list(d.keys())[list(d.values()).index(min(d[a] for a in self.possibleActions))]
-        self.startCoords += self.possibleActions[actionToTake]
+        return o, delay
 
-        if actionToTake == 'left' or actionToTake == 'right':
-            xr = self.movements[actionToTake]
-        else:
-            xm = self.movements[actionToTake]
-
-        if xm != 0:
-            self.move_base(xm)
-            self.robot.push_command()
-        
-        if xr != 0:
-            self.rotate_base(xr)
-            self.robot.push_command()
-            
-        time.sleep(delay)
-
+    # Implement functions based on dynamics equations
+    def getdX(self):
+        dX = 0
+        return dX
+    
+    def getdY(self):
+        dY = 0
+        return dY
+    
+    def getdPhi(self):
+        dPhi = 0
+        return dPhi
+    
     def calculateManhattanDistance(self, currentCoord):
         return abs(self.goalCoords[0] - currentCoord[0]) + abs(self.goalCoords[1] - currentCoord[1])
     
