@@ -16,8 +16,6 @@ cameraMatrix = camParams['cameraMatrix']
 distCoeffs = camParams['distortionCoefficients']
 
 # Set resolution and frame size when displaying
-cv2.namedWindow("ArUco Detection", cv2.WINDOW_NORMAL)
-cv2.resizeWindow("ArUco Detection", 1920, 1080)
 camera = cv2.VideoCapture(0)
 camera.set(3, 1920)
 camera.set(4, 1080)
