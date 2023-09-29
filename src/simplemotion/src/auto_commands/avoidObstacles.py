@@ -301,9 +301,11 @@ class BetterAvoidWithGoal:
         self.base = self.robot.base
         self.timer = timer
 
+        self.sR_ticks = 0
+        self.sL_ticks = 0
+
         # TODO: Correctly change these numbers
-        self.baseWidth = 5 # inch
-        self.wheelDiam = 3 # inch
+        self.wheelDiam = 4 # inch
         self.ticksPerRev = 3500 # encoder ticks per 1 wheel revolution
 
         self.moveBy = 0.15
@@ -372,11 +374,13 @@ class BetterAvoidWithGoal:
         # Based on the previous state, actions will change
         # Left is positive, right is negative
 
+        dX, dY, dPhi = self.getPos()
+
         possibleActions = {
             'left': (0, 0),
-            'front': (self.getdX(), self.getdY()),
+            'front': (-dX, -dY),
             'right': (0, 0),
-            'back': (self.getdX(), self.getdY())
+            'back': (dX, dY)
         }
 
         xm = 0
@@ -396,7 +400,7 @@ class BetterAvoidWithGoal:
         remainingActions = list(set(possibleActions) - set(obs))
         actionToTake = list(d.keys())[list(d.values()).index(min(d[a] for a in remainingActions))]
         self.startCoords += possibleActions[actionToTake]
-        self.phi = self.getdPhi()
+        self.phi += dPhi
 
         if actionToTake == 'left' or actionToTake == 'right':
             xr = self.movements[actionToTake]
@@ -529,17 +533,18 @@ class BetterAvoidWithGoal:
         return o, delay
 
     # Implement functions based on dynamics equations
-    def getdX(self):
-        dX = 0
-        return dX
-    
-    def getdY(self):
-        dY = 0
-        return dY
-    
-    def getdPhi(self):
-        dPhi = 0
-        return dPhi
+    def getPos(self):
+        dSr = self.sR_ticks - self.base.status['right wheel']['pos']
+        dSl = self.sL_ticks - self.base.status['left wheel']['pos']
+        dS = (dSr + dSl) / 2
+
+        dPhi = (dSr - dSl) / self.base.wheel_separation_m
+        dX = dS*math.cos(self.phi + (dPhi / 2))
+        dY = dS*math.sin(self.phi + (dPhi / 2))
+
+        self.sR_ticks = self.base.status['right wheel']['pos']
+        self.sL_ticks = self.base.status['left wheel']['pos']
+        return dX, dY, dPhi
     
     def calculateManhattanDistance(self, currentCoord):
         return abs(self.goalCoords[0] - currentCoord[0]) + abs(self.goalCoords[1] - currentCoord[1])
