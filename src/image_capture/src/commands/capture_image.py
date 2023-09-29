@@ -41,7 +41,7 @@ class ImageCapture:
             rospy.logwarn('CV Bridge Error: {0}'.format(e))
 
         if image is not None:
-            name = 'image_' + str(self.count) + '.jpg'
+            name = 'image_' + str(self.count) + '.png'
             path = os.path.join(self.save_path, name)
 
             if key == 'a':
