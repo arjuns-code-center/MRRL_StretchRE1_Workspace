@@ -160,8 +160,8 @@ include_directories(
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
   src/keyboard_control.py
-  src/auto_commands/box.py
-  src/auto_commands/avoidObstacles.py
+  src/commands/box.py
+  src/commands/avoidObstacles.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

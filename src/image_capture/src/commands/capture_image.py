@@ -1,6 +1,6 @@
 # Author: Arjun Viswanathan
-# Date created: 9/27/22
-# Last date modified: 5/4/23
+# Date created: 9/29/22
+# Last date modified: 9/29/23
 #
 # Image capture service which uses webcam to capture and save an image
 # Captured image is saved in the Images folder in the src directory of package
