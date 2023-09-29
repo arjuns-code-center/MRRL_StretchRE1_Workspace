@@ -160,10 +160,10 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-  src/commands/capture_image.py
   src/keyboard_control.py
-  src/auto_commands/followMarker.py
+  src/commands/followMarker.py
   src/aruco_video_detection.py
+  src/commands/capture_image.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

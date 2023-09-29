@@ -13,8 +13,7 @@ import stretch_body.robot as sb
 from stretch_body.hello_utils import *
 import rospy
 
-sys.path.insert(0, '/home/arjun/motion_ws/src/image_capture/src/commands/')
-from capture_image import ImageCapture
+sys.path.insert(0, '~/motion_ws/src/image_capture/src/commands/')
 
 print("========STRETCH Keyboard Controls========")
 print("Use WASD to move the base")
@@ -138,6 +137,7 @@ class Stretch_Move:
 class Keys:
     def __init__(self):
         self.sm = Stretch_Move()
+        self.count = 0
     
     def getkeystroke(self):
         fd=sys.stdin.fileno()
@@ -207,9 +207,6 @@ class Keys:
             self.sm.move_gripper(90)
         elif key == 'j' or key == 'J':
             self.sm.move_gripper(-90)
-
-        if key == '1':
-            ImageCapture()
 
         if key == 't' or key == 'T':
             self.sm.robot_stop()

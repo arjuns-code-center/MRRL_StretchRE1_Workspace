@@ -33,14 +33,16 @@ class FollowMarker:
         self.timer = timer
 
         # Load camera parameters from MATLAB
-        camParams = sio.loadmat("calibration/arjunLaptop_camParams.mat")
+        self.path = "~/motion_ws/src/image_capture/src/calibration/"
+
+        camParams = sio.loadmat(self.path + "/d435i_camParams.mat")
         self.cameraMatrix = camParams['cameraMatrix']
         self.distCoeffs = camParams['distortionCoefficients']
 
         self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
         self.aruco_params = cv2.aruco.DetectorParameters()
         self.detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
-        self.markerLength = 142 # mm
+        self.markerLength = 100 # mm
 
         self.moveBy = 0.15
         self.rotBy = 0.15
@@ -48,8 +50,10 @@ class FollowMarker:
         self.a = 5.0
         self.timeout = 1
 
-        self.distance = 400
-        self.ignore = 200
+        self.distance = 500
+        self.ignore = 300
+
+        self.j = 0
 
         self.rgb_sub = rospy.Subscriber('/camera/color/image_raw', Image, self.takeAction)
         rospy.spin()
@@ -97,6 +101,12 @@ class FollowMarker:
                         # Printing distance on the image
                         cv2.putText(cv2_rgbimg, str(depth), (tL[0], tL[1] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                         print("Marker detected! ID: {}, Center (pix): {}, Distance (mm): {}".format(str(markerID), mp, depth))
+
+                    # Press 's' key when detecting marker to save image. Only available when marker is detected
+                    if cv2.waitKey(33) == ord('s'):
+                        print("Taking ArUco pic {}...".format(j))
+                        cv2.imwrite(self.path + "Images/aruco_image_{}.png".format(self.j), cv2_rgbimg)
+                        self.j += 1
 
                     if depth > self.ignore:
                         if depth > self.distance:

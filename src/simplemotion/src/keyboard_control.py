@@ -44,6 +44,7 @@ class Stretch_Move:
         self.head = self.robot.head
 
         self.robot.startup()
+        self.base.first_step = True
 
         self.robot.pimu.trigger_beep()
         self.robot.push_command()
@@ -65,9 +66,19 @@ class Stretch_Move:
 
         self.timeout = 1.0
 
+        self.rpos = self.base.status['right_wheel']['pos']
+        self.lpos = self.base.status['left_wheel']['pos']
+
     def execCommand(self):
-        print("Left wheel: {}, Right Wheel: {}".format(self.base.left_wheel.status, self.base.right_wheel.status))
+        dR = self.base.status['right_wheel']['pos'] - self.rpos
+        dL = self.base.status['left_wheel']['pos'] - self.lpos
+        
+        print("dL: {}, dR: {}".format(dL, dR))
+
         self.robot.push_command()
+
+        self.rpos = self.base.status['right_wheel']['pos']
+        self.lpos = self.base.status['left_wheel']['pos']
         self.delay(0.05)
 
     def robot_stop(self):

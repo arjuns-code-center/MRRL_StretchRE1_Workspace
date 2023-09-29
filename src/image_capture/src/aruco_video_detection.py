@@ -2,7 +2,7 @@
 Author: Arjun Viswanathan
 SDP Team 12 ArUco Detection Script
 Date created: 9/25/23
-Date last modified: 9/26/23
+Date last modified: 9/29/23
 Description: base code for detecting ArUco markers off a live camera feed
 '''
 
@@ -10,8 +10,12 @@ import cv2
 import scipy.io as sio
 
 # Load camera parameters from MATLAB
-# camParams = sio.loadmat("arjunPC_camParams.mat")
-camParams = sio.loadmat("calibration/arjunLaptop_camParams.mat")
+path = "E:/Research/UMass_MRRL/MRRL_StretchRE1_Workspace/src/image_capture/src/calibration/"
+path_stretch = "~/motion_ws/src/image_capture/src/calibration/"
+
+# camParams = sio.loadmat(path_stretch + "arjunPC_camParams.mat")
+# camParams = sio.loadmat(path_stretch + "arjunLaptop_camParams.mat")
+camParams = sio.loadmat(path_stretch + "d435i_camParams.mat")
 cameraMatrix = camParams['cameraMatrix']
 distCoeffs = camParams['distortionCoefficients']
 
@@ -23,10 +27,10 @@ camera.set(4, 1080)
 success = 1
 
 # Set up the ArUco dictionary and detector object
-aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_1000)
+aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
 aruco_params = cv2.aruco.DetectorParameters()
 detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
-markerLength = 142 # mm
+markerLength = 100 # mm
 
 print("Reading from camera...\n")
 
@@ -62,7 +66,7 @@ while success:
         # Press 's' key when detecting marker to save image. Only available when marker is detected
         if cv2.waitKey(33) == ord('s'):
             print("Taking ArUco pic {}...".format(j))
-            cv2.imwrite("calibration/Images/aruco_image_{}.png".format(j), image)
+            cv2.imwrite(path_stretch + "Images/aruco_image_{}.png".format(j), image)
             j += 1
 
     cv2.imshow("ArUco Detection", image)
@@ -70,7 +74,7 @@ while success:
     # Press 'a' key to save image for calibration
     if cv2.waitKey(33) == ord('a'):
         print("Taking pic {}...".format(i))
-        cv2.imwrite("calibration/Images/image_{}.png".format(i), image)
+        cv2.imwrite(path_stretch + "Images/image_{}.png".format(i), image)
         i += 1
 
     if cv2.waitKey(1) == 27: # ESC key to exit

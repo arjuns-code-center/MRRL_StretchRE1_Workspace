@@ -10,7 +10,6 @@
 # rosrun simplemotion avoidObstacles.py --algotype=<SPECIFY TYPE> --timer=0 --goal=<SPECIFY GOAL TUPLE>
 # For integration with keyboard_teleop, it will default to BetterAvoid
 
-# TODO: Implement dynamics equations from paper in code 
 # Paper: https://www.sciencedirect.com/science/article/pii/S1319157821000550#s0010
 
 # Import system packages
@@ -301,8 +300,8 @@ class BetterAvoidWithGoal:
         self.base = self.robot.base
         self.timer = timer
 
-        self.sR_ticks = 0
-        self.sL_ticks = 0
+        self.rpos = self.base.status['right_wheel']['pos']
+        self.lpos = self.base.status['left_wheel']['pos']
 
         # TODO: Correctly change these numbers
         self.wheelDiam = 4 # inch
@@ -534,16 +533,16 @@ class BetterAvoidWithGoal:
 
     # Implement functions based on dynamics equations
     def getPos(self):
-        dSr = self.sR_ticks - self.base.status['right wheel']['pos']
-        dSl = self.sL_ticks - self.base.status['left wheel']['pos']
-        dS = (dSr + dSl) / 2
+        dRPos =  self.base.status['right_wheel']['pos'] - self.rpos
+        dLPos = self.base.status['left_wheel']['pos'] - self.lpos
+        dS = (dRPos + dLPos) / 2
 
-        dPhi = (dSr - dSl) / self.base.wheel_separation_m
+        dPhi = (dRPos - dLPos) / self.base.wheel_separation_m
         dX = dS*math.cos(self.phi + (dPhi / 2))
         dY = dS*math.sin(self.phi + (dPhi / 2))
 
-        self.sR_ticks = self.base.status['right wheel']['pos']
-        self.sL_ticks = self.base.status['left wheel']['pos']
+        self.rpos = self.base.status['right_wheel']['pos']
+        self.lpos = self.base.status['left_wheel']['pos']
         return dX, dY, dPhi
     
     def calculateManhattanDistance(self, currentCoord):
