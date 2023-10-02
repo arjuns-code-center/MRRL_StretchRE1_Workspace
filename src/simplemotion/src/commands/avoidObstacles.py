@@ -1,13 +1,18 @@
 # Author: Arjun Viswanathan
 # Date created: 3/9/23
-# Last modified date: 9/24/23
+# Last modified date: 10/2/23
 # Summary: Navigate around obstacles in front of stretch using LiDAR in autonomous mode
 # SimpleAvoid: performs avoidance while continuously going forward
 # BetterAvoid: performs avoidance and considers previous states to navigate better
 # BetterAvoidWithGoal: performs avoidance with previous states but with another added constraint of minimizing distance to goal
 
 # How to run the file from command line:
-# rosrun simplemotion avoidObstacles.py --algotype=<SPECIFY TYPE> --timer=0 --goal=<SPECIFY GOAL TUPLE>
+# rosrun simplemotion avoidObstacles.py --algotype=<> --timer=<>
+# rosrun simplemotion avoidObstacles.py --algotype=<> --goal=<>
+# rosrun simplemotion avoidObstacles.py --algotype=<> --start=<> --goal=<>
+# rosrun simplemotion avoidObstacles.py --algotype=<> --timer=<> --goal=<>
+# rosrun simplemotion avoidObstacles.py --algotype=<> --timer=<> --start=<> --goal=<>
+
 # For integration with keyboard_teleop, it will default to BetterAvoid
 
 # Paper: https://www.sciencedirect.com/science/article/pii/S1319157821000550#s0010
@@ -303,10 +308,6 @@ class BetterAvoidWithGoal:
         self.rpos = self.base.status['right_wheel']['pos']
         self.lpos = self.base.status['left_wheel']['pos']
 
-        # TODO: Correctly change these numbers
-        self.wheelDiam = 4 # inch
-        self.ticksPerRev = 3500 # encoder ticks per 1 wheel revolution
-
         self.moveBy = 0.15
         self.rotBy = 0.15
         self.v = 10.0
@@ -567,10 +568,10 @@ class BetterAvoidWithGoal:
 
 if __name__ == "__main__":
     args = argparse.ArgumentParser()
-    args.add_argument('--algotype', default='better', type=str, help='what avoidance algorithm to run')
-    args.add_argument('--timer', default=False, type=str, help='what avoidance algorithm to run')
-    args.add_argument('--start', default=(0, 0), type=str, help='what are the start coordinates')
-    args.add_argument('--goal', default=(0, 0), type=str, help='what are the goal coordinates')
+    args.add_argument('--algotype', default='better', type=str, help='what avoidance algorithm to run (simple/better/bettergoal)')
+    args.add_argument('--timer', default=False, type=str, help='whether you want a 30 sec timer or not (0/1)')
+    args.add_argument('--start', default=(0, 0), type=str, help='what are the start coordinates (x, y)')
+    args.add_argument('--goal', default=(0, 0), type=str, help='what are the goal coordinates (x, y)')
     args, unknown = args.parse_known_args()
     algorithmType = args.algotype
     timer = int(args.timer)

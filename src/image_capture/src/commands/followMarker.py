@@ -1,6 +1,6 @@
 # Author: Arjun Viswanathan
 # Date created: 4/13/23
-# Last modified date: 9/26/23
+# Last modified date: 10/2/23
 # Summary: follows a single ArUco marker in front of it using computer vision
 
 # How to run from command line:
@@ -51,7 +51,7 @@ class FollowMarker:
         self.a = 5.0
         self.timeout = 1
 
-        self.distance = 500
+        self.distance = 500 # mm
         self.ignore = 300
 
         self.j = 0
@@ -108,21 +108,23 @@ class FollowMarker:
                         print("Taking ArUco pic {}...".format(j))
                         cv2.imwrite(self.path + "Images/aruco_image_{}.png".format(self.j), cv2_rgbimg)
                         self.j += 1
-
-                    if depth > self.ignore:
-                        if depth > self.distance:
-                            xm = self.moveBy
-                        elif depth < self.distance:
-                            xm = -self.moveBy
-
-                    if mp[0] < s[0] / 2:
-                        xr = -self.rotBy
-                    elif mp[0] > s[0] / 2:
-                        xr = self.rotBy
             else:
                 print("No marker detected :(")
         except CvBridgeError as e:
             rospy.logwarn('CV Bridge Error: {0}'.format(e))
+
+        if depth > self.ignore:
+            if depth > self.distance:
+                xm = self.moveBy
+            elif depth < self.distance:
+                xm = -self.moveBy
+
+        # If it detected a marker, mp != 0
+        if mp[0] != 0 and mp[1] != 0:
+            if mp[0] < s[1] / 2:
+                xr = -self.rotBy
+            elif mp[0] > s[1] / 2:
+                xr = self.rotBy
 
         if xm != 0:
             self.move_base(xm)
