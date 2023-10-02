@@ -16,6 +16,7 @@ import time
 import argparse
 import cv2
 import scipy.io as sio
+import numpy as np
 
 # Import ROS specific packages
 import rospy
@@ -24,7 +25,7 @@ import stretch_body.robot as sb
 from cv_bridge import CvBridge, CvBridgeError
 
 class FollowMarker:
-    def __init__(self, robot, timer=True):
+    def __init__(self, robot, timer=False):
         self.start_time = time.time()
         print("Starting Follow Object Algorithm...")
 
@@ -35,9 +36,9 @@ class FollowMarker:
         # Load camera parameters from MATLAB
         self.path = "~/motion_ws/src/image_capture/src/calibration/"
 
-        camParams = sio.loadmat(self.path + "/d435i_camParams.mat")
-        self.cameraMatrix = camParams['cameraMatrix']
-        self.distCoeffs = camParams['distortionCoefficients']
+        # camParams = sio.loadmat(self.path + "d435i_camParams.mat")
+        self.cameraMatrix = np.float32([[295.6886, 0, 321.6002], [0, 297.0698, 229.0389], [0, 0, 1]])
+        self.distCoeffs = np.float32([-0.0606, 0.0274, 0, 0, 0])
 
         self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
         self.aruco_params = cv2.aruco.DetectorParameters()

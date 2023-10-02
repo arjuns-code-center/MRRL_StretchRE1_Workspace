@@ -34,13 +34,13 @@ while True:
     color_img = np.asanyarray(color_frame.get_data())
     depth_cm = cv2.applyColorMap(cv2.convertScaleAbs(depth_img, alpha=0.5), cv2.COLORMAP_JET)
     
-    cv2.imshow('rgb', color_frame)
+    cv2.imshow('rgb', color_img)
     cv2.imshow('depth', depth_cm)
 
     # Press 'a' key to save image for calibration
     if cv2.waitKey(33) == ord('a'):
         print("Taking pic {}...".format(i))
-        cv2.imwrite(path_stretch + "Images/image_{}.png".format(i), color_img)
+        cv2.imwrite(path + "Images/image_{}.png".format(i), color_img)
         i += 1
 
     if cv2.waitKey(1) == 27:
