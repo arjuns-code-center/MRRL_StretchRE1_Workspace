@@ -48,7 +48,7 @@ undistortedImage = undistortImage(originalImage, cameraParams);
 [cameraMatrix,distortionCoefficients] = cameraIntrinsicsToOpenCV(cameraParams);
 %save("arjunPC_camParams.mat", "cameraMatrix", "distortionCoefficients");
 %save("arjunLaptop_camParams.mat", "cameraMatrix", "distortionCoefficients");
-save("d435i_camParams.mat", "cameraMatrix", "distortionCoefficients");
+save("d455i_camParams.mat", "cameraMatrix", "distortionCoefficients");
 
 % See additional examples of how to use the calibration data.  At the prompt type:
 % showdemo('MeasuringPlanarObjectsExample')

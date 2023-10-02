@@ -17,9 +17,10 @@ camtype = 'realsense'
 path = "E:/Research/UMass_MRRL/MRRL_StretchRE1_Workspace/src/image_capture/src/calibration/"
 path_stretch = "~/motion_ws/src/image_capture/src/calibration/"
 
-# camParams = sio.loadmat(path_stretch + "arjunPC_camParams.mat")
-# camParams = sio.loadmat(path_stretch + "arjunLaptop_camParams.mat")
-camParams = sio.loadmat(path + "d435i_camParams.mat")
+# camParams = sio.loadmat(path + "arjunPC_camParams.mat")
+# camParams = sio.loadmat(path + "arjunLaptop_camParams.mat")
+# camParams = sio.loadmat(path + "d435i_camParams.mat")
+camParams = sio.loadmat(path + "d455i_camParams.mat")
 cameraMatrix = camParams['cameraMatrix']
 distCoeffs = camParams['distortionCoefficients']
 
@@ -44,7 +45,7 @@ elif camtype == 'realsense':
 aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
 aruco_params = cv2.aruco.DetectorParameters()
 detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
-markerLength = 100 # mm
+markerLength = 25 # mm
 
 print("Reading from camera...\n")
 
