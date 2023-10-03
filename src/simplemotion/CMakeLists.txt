@@ -162,6 +162,12 @@ catkin_install_python(PROGRAMS
   src/keyboard_control.py
   src/commands/box.py
   src/commands/avoidObstacles.py
+  src/commands/moveForward.py
+  src/commands/moveBack.py
+  src/commands/turnLeft.py
+  src/commands/turnRight.py 
+  src/commands/curveLeft.py 
+  src/commands/curveRight.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

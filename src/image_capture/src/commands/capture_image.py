@@ -11,30 +11,15 @@ from cv_bridge import CvBridge, CvBridgeError
 import os, sys, termios, tty
 
 class ImageCapture:
-    def __init__(self, count=0):
+    def __init__(self):
         self.bridge = CvBridge()
         self.sub = rospy.Subscriber('/camera/color/image_raw', Image, self.capture_and_save)
         self.save_path = '/home/arjun/motion_ws/src/image_capture/src/calibration/Images/'
-        self.count = count
-
+        
         print("Starting node...")
         rospy.spin()
 
-    def getKeystroke(self):
-        fd=sys.stdin.fileno()
-        old_settings=termios.tcgetattr(fd)
-
-        try:
-            tty.setraw(sys.stdin.fileno())
-            ch=sys.stdin.read(1)
-        finally:
-            termios.tcsetattr(fd,termios.TCSADRAIN,old_settings)
-
-        return ch
-
     def capture_and_save(self, msg):
-        key = self.getKeystroke()
-
         try:
             image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
         except CvBridgeError as e:
@@ -44,10 +29,9 @@ class ImageCapture:
             name = 'image_' + str(self.count) + '.png'
             path = os.path.join(self.save_path, name)
 
-            if key == 'a':
-                cv2.imwrite(path, image)
-                print("Saved {}".format(name))
-                self.count += 1
+            cv2.imwrite(path, image)
+            print("Saved {}".format(name))
+            self.count += 1
         else:
             print("No image detected. Please try again")
 
