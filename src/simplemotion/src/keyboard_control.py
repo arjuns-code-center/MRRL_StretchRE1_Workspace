@@ -14,7 +14,7 @@ import stretch_body.robot as sb
 from stretch_body.hello_utils import *
 import rospy
 
-sys.path.insert(0, '/home/arjun/motion_ws/src/simplemotion/src/auto_commands')
+sys.path.insert(0, '/home/arjun/motion_ws/src/simplemotion/src/commands')
 from avoidObstacles import BetterAvoid as aO
 
 print("========STRETCH Keyboard Controls========")
