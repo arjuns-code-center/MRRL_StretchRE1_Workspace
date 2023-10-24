@@ -79,7 +79,6 @@ class FollowMarker:
         xr = 0
         mp = [0, 0]
         depth = 0
-        mid = 0
 
         frame = self.pipe.wait_for_frames()
         rgb_frame = frame.get_color_frame()
@@ -123,7 +122,7 @@ class FollowMarker:
                             # cv2.putText(rgb_img, str(depth), (tL[0], tL[1] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                             print("Marker {} detected! X: {}, Y: {}, Distance (mm): {}".format(str(markerID), mp[0], mp[1], depth))
                         else:
-                            print("Marker {} detected!")
+                            print("Marker {} detected!".format(str(markerID)))
 
                     # Press 's' key when detecting marker to save image. Only available when marker is detected
                     if cv2.waitKey(33) == ord('s'):
